@@ -1,0 +1,171 @@
+
+services:
+
+  # === INFRASTRUCTURE ===
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: noisemap
+      POSTGRES_PASSWORD: noisemap
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/config/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noisemap"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI: http://localhost:15672 (guest/guest)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # === APPLICATION SERVICES ===
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET: noisemap-dev-secret-key-change-in-production-min-32-chars
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_USERNAME: noisemap
+      DB_PASSWORD: noisemap
+      JWT_SECRET: noisemap-dev-secret-key-change-in-production-min-32-chars
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  recording-service:
+    build: ./recording-service
+    ports:
+      - "8082:8082"
+    environment:
+      RABBIT_USER: guest
+      RABBIT_PASS: guest
+    volumes:
+      - audio_data:/data/audio
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  mapping-service:
+    build: ./mapping-service
+    ports:
+      - "8083:8083"
+    environment:
+      RABBIT_USER: guest
+      RABBIT_PASS: guest
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  statistics-service:
+    build: ./statistics-service
+    ports:
+      - "8084:8084"
+    environment:
+      RABBIT_USER: guest
+      RABBIT_PASS: guest
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  gamification-service:
+    build: ./gamification-service
+    ports:
+      - "8085:8085"
+    environment:
+      DB_USERNAME: noisemap
+      DB_PASSWORD: noisemap
+      RABBIT_USER: guest
+      RABBIT_PASS: guest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "8086:8086"
+    environment:
+      RABBIT_USER: guest
+      RABBIT_PASS: guest
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  moderation-service:
+    build: ./moderation-service
+    ports:
+      - "8087:8087"
+    environment:
+      RABBIT_USER: guest
+      RABBIT_PASS: guest
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  mongo_data:
+  audio_data:

@@ -1,0 +1,84 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        # Override URIs to localhost for local dev
+        - id: user-service-auth
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: user-service-users
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/users/**
+        - id: recording-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/recordings/**
+        - id: mapping-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/map/**
+        - id: statistics-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/stats/**
+        - id: gamification-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/v1/gamification/**
+        - id: notification-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/v1/notifications/**
+        - id: moderation-service
+          uri: http://localhost:8087
+          predicates:
+            - Path=/api/v1/moderation/**
+        # Swagger routes
+        - id: user-service-docs
+          uri: http://localhost:8081
+          predicates:
+            - Path=/services/user/**
+          filters:
+            - StripPrefix=2
+        - id: recording-service-docs
+          uri: http://localhost:8082
+          predicates:
+            - Path=/services/recording/**
+          filters:
+            - StripPrefix=2
+        - id: mapping-service-docs
+          uri: http://localhost:8083
+          predicates:
+            - Path=/services/mapping/**
+          filters:
+            - StripPrefix=2
+        - id: statistics-service-docs
+          uri: http://localhost:8084
+          predicates:
+            - Path=/services/statistics/**
+          filters:
+            - StripPrefix=2
+        - id: gamification-service-docs
+          uri: http://localhost:8085
+          predicates:
+            - Path=/services/gamification/**
+          filters:
+            - StripPrefix=2
+        - id: notification-service-docs
+          uri: http://localhost:8086
+          predicates:
+            - Path=/services/notification/**
+          filters:
+            - StripPrefix=2
+        - id: moderation-service-docs
+          uri: http://localhost:8087
+          predicates:
+            - Path=/services/moderation/**
+          filters:
+            - StripPrefix=2
+  data:
+    redis:
+      host: localhost
+      port: 6379

@@ -1,0 +1,135 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # === User Service ===
+        - id: user-service-auth
+          uri: http://user-service:8081
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: user-service-users
+          uri: http://user-service:8081
+          predicates:
+            - Path=/api/v1/users/**
+
+        # === Recording Service ===
+        - id: recording-service
+          uri: http://recording-service:8082
+          predicates:
+            - Path=/api/v1/recordings/**
+
+        # === Mapping Service ===
+        - id: mapping-service
+          uri: http://mapping-service:8083
+          predicates:
+            - Path=/api/v1/map/**
+
+        # === Statistics Service ===
+        - id: statistics-service
+          uri: http://statistics-service:8084
+          predicates:
+            - Path=/api/v1/stats/**
+
+        # === Gamification Service ===
+        - id: gamification-service
+          uri: http://gamification-service:8085
+          predicates:
+            - Path=/api/v1/gamification/**
+
+        # === Notification Service ===
+        - id: notification-service
+          uri: http://notification-service:8086
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        # === Moderation Service ===
+        - id: moderation-service
+          uri: http://moderation-service:8087
+          predicates:
+            - Path=/api/v1/moderation/**
+
+        # === Swagger API Docs Routes (проксирование документации сервисов) ===
+        - id: user-service-docs
+          uri: http://user-service:8081
+          predicates:
+            - Path=/services/user/**
+          filters:
+            - StripPrefix=2
+        - id: recording-service-docs
+          uri: http://recording-service:8082
+          predicates:
+            - Path=/services/recording/**
+          filters:
+            - StripPrefix=2
+        - id: mapping-service-docs
+          uri: http://mapping-service:8083
+          predicates:
+            - Path=/services/mapping/**
+          filters:
+            - StripPrefix=2
+        - id: statistics-service-docs
+          uri: http://statistics-service:8084
+          predicates:
+            - Path=/services/statistics/**
+          filters:
+            - StripPrefix=2
+        - id: gamification-service-docs
+          uri: http://gamification-service:8085
+          predicates:
+            - Path=/services/gamification/**
+          filters:
+            - StripPrefix=2
+        - id: notification-service-docs
+          uri: http://notification-service:8086
+          predicates:
+            - Path=/services/notification/**
+          filters:
+            - StripPrefix=2
+        - id: moderation-service-docs
+          uri: http://moderation-service:8087
+          predicates:
+            - Path=/services/moderation/**
+          filters:
+            - StripPrefix=2
+
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+jwt:
+  secret: ${JWT_SECRET:noisemap-dev-secret-key-change-in-production-min-32-chars}
+
+# Swagger UI на Gateway агрегирует документацию всех сервисов
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: User Service
+        url: /services/user/v3/api-docs
+      - name: Recording Service
+        url: /services/recording/v3/api-docs
+      - name: Mapping Service
+        url: /services/mapping/v3/api-docs
+      - name: Statistics Service
+        url: /services/statistics/v3/api-docs
+      - name: Gamification Service
+        url: /services/gamification/v3/api-docs
+      - name: Notification Service
+        url: /services/notification/v3/api-docs
+      - name: Moderation Service
+        url: /services/moderation/v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
