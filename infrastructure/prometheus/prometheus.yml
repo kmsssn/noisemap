@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'api-gateway'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  - job_name: 'user-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['user-service:8081']
+
+  - job_name: 'recording-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['recording-service:8082']
+
+  - job_name: 'mapping-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['mapping-service:8083']
+
+  - job_name: 'statistics-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['statistics-service:8084']
+
+  - job_name: 'gamification-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['gamification-service:8085']
+
+  - job_name: 'notification-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['notification-service:8086']
+
+  - job_name: 'moderation-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['moderation-service:8087']

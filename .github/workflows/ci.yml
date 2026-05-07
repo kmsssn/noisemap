@@ -1,0 +1,130 @@
+name: NoiseMap CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      common-lib: ${{ steps.changes.outputs.common-lib }}
+      api-gateway: ${{ steps.changes.outputs.api-gateway }}
+      user-service: ${{ steps.changes.outputs.user-service }}
+      recording-service: ${{ steps.changes.outputs.recording-service }}
+      mapping-service: ${{ steps.changes.outputs.mapping-service }}
+      statistics-service: ${{ steps.changes.outputs.statistics-service }}
+      gamification-service: ${{ steps.changes.outputs.gamification-service }}
+      notification-service: ${{ steps.changes.outputs.notification-service }}
+      moderation-service: ${{ steps.changes.outputs.moderation-service }}
+      infra: ${{ steps.changes.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            common-lib:
+              - 'common-lib/**'
+              - 'pom.xml'
+            api-gateway:
+              - 'api-gateway/**'
+              - 'common-lib/**'
+            user-service:
+              - 'user-service/**'
+              - 'common-lib/**'
+            recording-service:
+              - 'recording-service/**'
+              - 'common-lib/**'
+            mapping-service:
+              - 'mapping-service/**'
+              - 'common-lib/**'
+            statistics-service:
+              - 'statistics-service/**'
+              - 'common-lib/**'
+            gamification-service:
+              - 'gamification-service/**'
+              - 'common-lib/**'
+            notification-service:
+              - 'notification-service/**'
+              - 'common-lib/**'
+            moderation-service:
+              - 'moderation-service/**'
+              - 'common-lib/**'
+            infra:
+              - 'docker-compose.yml'
+              - 'infrastructure/**'
+
+  # === Сборка и тесты ===
+  build:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Build common-lib
+        run: mvn clean install -pl common-lib -am -DskipTests
+
+      - name: Build user-service
+        if: needs.detect-changes.outputs.user-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl user-service -am -DskipTests
+
+      - name: Build recording-service
+        if: needs.detect-changes.outputs.recording-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl recording-service -am -DskipTests
+
+      - name: Build mapping-service
+        if: needs.detect-changes.outputs.mapping-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl mapping-service -am -DskipTests
+
+      - name: Build statistics-service
+        if: needs.detect-changes.outputs.statistics-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl statistics-service -am -DskipTests
+
+      - name: Build gamification-service
+        if: needs.detect-changes.outputs.gamification-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl gamification-service -am -DskipTests
+
+      - name: Build notification-service
+        if: needs.detect-changes.outputs.notification-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl notification-service -am -DskipTests
+
+      - name: Build moderation-service
+        if: needs.detect-changes.outputs.moderation-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl moderation-service -am -DskipTests
+
+      - name: Build api-gateway
+        if: needs.detect-changes.outputs.api-gateway == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl api-gateway -am -DskipTests
+
+      - name: Run tests
+        run: mvn test
+
+  deploy:
+    needs: [build, detect-changes]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /root/noisemap
+            git pull origin main
+            mvn clean package -DskipTests
+            docker compose build --no-cache
+            docker compose up -d
+            docker compose ps
