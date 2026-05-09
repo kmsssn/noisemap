@@ -7,10 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-/**
- * Публичные данные пользователя — только то что можно показать другим.
- * Используется в лидерборде геймификации.
- */
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,5 +15,4 @@ import java.util.UUID;
 public class PublicUserDto {
     private UUID id;
     private String displayName;
-    private Integer level; // если нужно
 }

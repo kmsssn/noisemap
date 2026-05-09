@@ -3,7 +3,7 @@ package kz.noisemap.commentservice;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"kz.noisemap.commentservice", "kz.noisemap.common"})
 public class CommentServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(CommentServiceApplication.class, args);
