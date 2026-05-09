@@ -1,7 +1,10 @@
 package kz.noisemap.gamificationservice.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -26,12 +29,13 @@ public class UserAchievement {
     private String achievementCode;
 
     @Column(nullable = false)
-    private String achievementTitle;
-
-    private String description;
-
-    private Integer pointsAwarded;
-
-    @Column(nullable = false)
     private Instant unlockedAt;
+
+    /**
+     * Связь с определением ачивки.
+     * Используем FetchType.LAZY — не грузим определение если не нужно.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "achievementCode", insertable = false, updatable = false)
+    private AchievementDefinition definition;
 }

@@ -1,32 +1,53 @@
 package kz.noisemap.gamificationservice.model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.Instant;
 
 /**
- * Справочник всех ачивок. Добавляем новые сюда.
+ * Определение ачивки — хранится в БД.
+ * Добавить новую ачивку = INSERT в таблицу, без редеплоя.
+ *
+ * trigger_type определяет условие:
+ *   recording_count   — trigger_value = минимальное кол-во записей ("1", "10", "50")
+ *   noise_level_below — trigger_value = максимальный дБА ("<40")
+ *   noise_level_above — trigger_value = минимальный дБА (">85")
+ *   time_of_day       — trigger_value = "night" (23-5) или "morning" (5-7)
+ *   streak_days       — trigger_value = минимальный стрик ("7", "30")
  */
-@Getter
+@Entity
+@Table(name = "achievement_definitions")
+@Data
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
-public enum AchievementDefinition {
+public class AchievementDefinition {
 
-    FIRST_RECORDING("first_recording", "Первый шаг", "Сделайте первую запись", 10),
-    RECORDINGS_10("recordings_10", "Активист", "Сделайте 10 записей", 50),
-    RECORDINGS_50("recordings_50", "Исследователь", "Сделайте 50 записей", 200),
-    RECORDINGS_100("recordings_100", "Эксперт", "Сделайте 100 записей", 500),
-    RECORDINGS_500("recordings_500", "Легенда", "Сделайте 500 записей", 2000),
+    @Id
+    private String code;           // уникальный код: "first_recording", "quiet_finder"
 
-    QUIET_FINDER("quiet_finder", "Тишина и покой", "Найдите место тише 40 дБА", 100),
-    LOUD_DISCOVERER("loud_discoverer", "Горячая точка", "Найдите место громче 85 дБА", 50),
+    @Column(nullable = false)
+    private String title;          // "Первый шаг"
 
-    NIGHT_OWL("night_owl", "Ночной дозор", "Сделайте запись между 23:00 и 5:00", 75),
-    EARLY_BIRD("early_bird", "Ранняя пташка", "Сделайте запись между 5:00 и 7:00", 75),
+    @Column(nullable = false)
+    private String description;    // "Сделайте первую запись"
 
-    STREAK_7("streak_7", "Неделя подряд", "Записывайте звук 7 дней подряд", 150),
-    STREAK_30("streak_30", "Месяц подряд", "Записывайте звук 30 дней подряд", 500);
+    @Column(nullable = false)
+    private Integer points;        // очки за ачивку
 
-    private final String code;
-    private final String title;
-    private final String description;
-    private final int points;
+    @Column(nullable = false)
+    private String triggerType;    // тип условия
+
+    private String triggerValue;   // значение условия
+
+    private String iconUrl;        // ссылка на иконку: "/icons/achievements/first_recording.svg"
+
+    @Builder.Default
+    private Boolean active = true; // можно отключить без удаления
+
+    private Instant createdAt;
 }

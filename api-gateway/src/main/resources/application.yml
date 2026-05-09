@@ -53,6 +53,12 @@ spring:
           predicates:
             - Path=/api/v1/moderation/**
 
+        # === Comment Service ===
+        - id: comment-service
+          uri: http://comment-service:8088
+          predicates:
+            - Path=/api/v1/comments/**
+
         # === Swagger API Docs Routes (проксирование документации сервисов) ===
         - id: user-service-docs
           uri: http://user-service:8081
@@ -96,6 +102,12 @@ spring:
             - Path=/services/moderation/**
           filters:
             - StripPrefix=2
+        - id: comment-service-docs
+          uri: http://comment-service:8088
+          predicates:
+            - Path=/services/comment/**
+          filters:
+            - StripPrefix=2
 
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin
@@ -127,6 +139,8 @@ springdoc:
         url: /services/notification/v3/api-docs
       - name: Moderation Service
         url: /services/moderation/v3/api-docs
+      - name: Comment Service
+        url: /services/comment/v3/api-docs
 
 management:
   endpoints:

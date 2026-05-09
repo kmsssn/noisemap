@@ -164,6 +164,14 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  comment-service:
+    build: ./comment-service
+    ports: [ "8088:8088" ]
+    environment: { }
+    depends_on:
+      mongodb: { condition: service_healthy }
+
   prometheus:
     image: prom/prometheus:latest
     ports: ["9090:9090"]

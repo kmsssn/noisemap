@@ -1,0 +1,15 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: comment-service
+  data:
+    mongodb:
+      uri: mongodb://mongodb:27017/noisemap_comments
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

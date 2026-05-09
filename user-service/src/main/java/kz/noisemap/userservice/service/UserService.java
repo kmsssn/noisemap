@@ -1,5 +1,6 @@
 package kz.noisemap.userservice.service;
 
+import kz.noisemap.userservice.dto.PublicUserDto;
 import kz.noisemap.userservice.dto.UserDto;
 import kz.noisemap.userservice.model.User;
 import kz.noisemap.userservice.repository.UserRepository;
@@ -16,46 +17,39 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserDto.Response getProfile(UUID userId) {
-        User user = findById(userId);
-        return toResponse(user);
+        return toResponse(findById(userId));
     }
 
     @Transactional
     public UserDto.Response updateProfile(UUID userId, UserDto.UpdateRequest request) {
         User user = findById(userId);
-
-        if (request.getDisplayName() != null) {
-            user.setDisplayName(request.getDisplayName());
-        }
-        if (request.getLanguage() != null) {
-            user.setLanguage(request.getLanguage());
-        }
-
-        user = userRepository.save(user);
-        return toResponse(user);
+        if (request.getDisplayName() != null) user.setDisplayName(request.getDisplayName());
+        if (request.getLanguage() != null) user.setLanguage(request.getLanguage());
+        return toResponse(userRepository.save(user));
     }
 
     @Transactional
     public UserDto.Response updateDevice(UUID userId, UserDto.DeviceUpdateRequest request) {
         User user = findById(userId);
+        if (request.getDeviceModel() != null) user.setDeviceModel(request.getDeviceModel());
+        if (request.getCalibrationOffset() != null) user.setCalibrationOffset(request.getCalibrationOffset());
+        return toResponse(userRepository.save(user));
+    }
 
-        if (request.getDeviceModel() != null) {
-            user.setDeviceModel(request.getDeviceModel());
-        }
-        if (request.getCalibrationOffset() != null) {
-            user.setCalibrationOffset(request.getCalibrationOffset());
-        }
-
-        user = userRepository.save(user);
-        return toResponse(user);
+    public Double getCalibrationOffset(UUID userId) {
+        return findById(userId).getCalibrationOffset();
     }
 
     /**
-     * Вызывается другими сервисами через REST для получения калибровки устройства.
+     * Публичная информация — только displayName.
+     * Используется другими сервисами (gamification лидерборд).
      */
-    public Double getCalibrationOffset(UUID userId) {
+    public PublicUserDto getPublicInfo(UUID userId) {
         User user = findById(userId);
-        return user.getCalibrationOffset();
+        return PublicUserDto.builder()
+                .id(user.getId())
+                .displayName(user.getDisplayName())
+                .build();
     }
 
     private User findById(UUID userId) {

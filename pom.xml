@@ -28,6 +28,7 @@
         <module>gamification-service</module>
         <module>notification-service</module>
         <module>moderation-service</module>
+        <module>comment-service</module>
     </modules>
 
     <properties>
