@@ -32,12 +32,13 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/auth/register",
             "/api/v1/auth/login",
+            "/api/v1/auth/forgot-password",
+            "/api/v1/auth/reset-password",
             "/api/v1/map/tiles",
             "/api/v1/stats/city",
             "/actuator",
             "/swagger-ui",
             "/v3/api-docs",
-            "/services/",
             "/webjars/"
     );
 
@@ -45,9 +46,22 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
 
-        // Пропускаем публичные эндпоинты
-        if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) {
+
+        boolean isDocsPath = path.startsWith("/services/")
+                && (path.contains("/v3/api-docs")
+                || path.contains("/swagger-ui")
+                || path.contains("/webjars"));
+
+        boolean isPublic = isDocsPath
+                || PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+
+        if (isPublic) {
             return chain.filter(exchange);
+        }
+
+        if (path.startsWith("/services/")) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
@@ -86,6 +100,6 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return -1; // Выполняется первым
+        return -1;
     }
 }

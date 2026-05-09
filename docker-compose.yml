@@ -1,4 +1,3 @@
-
 services:
 
   # === INFRASTRUCTURE ===
@@ -17,7 +16,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U noisemap"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   mongodb:
     image: mongo:7
@@ -29,7 +29,8 @@ services:
       test: echo 'db.runCommand("ping").ok' | mongosh --quiet
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -40,6 +41,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -53,7 +55,8 @@ services:
       test: rabbitmq-diagnostics -q ping
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 40s
 
   # === APPLICATION SERVICES ===
 
@@ -167,10 +170,11 @@ services:
 
   comment-service:
     build: ./comment-service
-    ports: [ "8088:8088" ]
-    environment: { }
+    ports:
+      - "8088:8088"
     depends_on:
-      mongodb: { condition: service_healthy }
+      mongodb:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest
@@ -194,4 +198,3 @@ volumes:
   mongo_data:
   audio_data:
   grafana_data:
-

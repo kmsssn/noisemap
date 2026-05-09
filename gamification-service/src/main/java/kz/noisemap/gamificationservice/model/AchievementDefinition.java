@@ -28,26 +28,31 @@ import java.time.Instant;
 public class AchievementDefinition {
 
     @Id
-    private String code;           // уникальный код: "first_recording", "quiet_finder"
+    @Column(name = "code")
+    private String code;
 
-    @Column(nullable = false)
-    private String title;          // "Первый шаг"
+    @Column(name = "title", nullable = false)
+    private String title;
 
-    @Column(nullable = false)
-    private String description;    // "Сделайте первую запись"
+    @Column(name = "description", nullable = false)
+    private String description;
 
-    @Column(nullable = false)
+    @Column(name = "points", nullable = false)
     private Integer points;        // очки за ачивку
 
-    @Column(nullable = false)
+    @Column(name = "trigger_type", nullable = false)
     private String triggerType;    // тип условия
 
+    @Column(name = "trigger_value")
     private String triggerValue;   // значение условия
 
+    @Column(name = "icon_url")
     private String iconUrl;        // ссылка на иконку: "/icons/achievements/first_recording.svg"
 
     @Builder.Default
-    private Boolean active = true; // можно отключить без удаления
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 
+    @Column(name = "created_at")
     private Instant createdAt;
 }

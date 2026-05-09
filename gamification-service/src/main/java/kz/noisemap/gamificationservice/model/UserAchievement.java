@@ -5,13 +5,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "user_achievements",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"userId", "achievementCode"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "achievement_code"}))
 @Data
 @Builder
 @NoArgsConstructor
@@ -22,20 +23,17 @@ public class UserAchievement {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(nullable = false)
+    @Column(name = "achievement_code", nullable = false)
     private String achievementCode;
 
-    @Column(nullable = false)
+    @CreationTimestamp
+    @Column(name = "unlocked_at", nullable = false, updatable = false)
     private Instant unlockedAt;
 
-    /**
-     * Связь с определением ачивки.
-     * Используем FetchType.LAZY — не грузим определение если не нужно.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "achievementCode", insertable = false, updatable = false)
+    @JoinColumn(name = "achievement_code", insertable = false, updatable = false)
     private AchievementDefinition definition;
 }
