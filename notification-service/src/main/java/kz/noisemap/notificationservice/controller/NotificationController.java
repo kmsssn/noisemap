@@ -17,14 +17,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
-@Tag(name = "Уведомления", description = "Push-уведомления: ачивки, алерты шума (>85 дБА), модерация")
+@Tag(name = "Notifications", description = "Push notifications: achievements, noise alerts (>85 dBA), moderation")
 public class NotificationController {
 
     private final NotificationService notificationService;
 
     @GetMapping
-    @Operation(summary = "Мои уведомления",
-               description = "Список уведомлений пользователя с пагинацией, отсортированных по дате (новые первыми)")
+    @Operation(summary = "My notifications",
+               description = "Paginated list of user notifications sorted by date (newest first)")
     public ResponseEntity<Page<NotificationDto.Response>> getMyNotifications(
             @RequestHeader("X-User-Id") UUID userId,
             @PageableDefault(size = 20) Pageable pageable) {
@@ -32,8 +32,8 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    @Operation(summary = "Счётчик непрочитанных",
-               description = "Количество непрочитанных уведомлений для бейджа в UI")
+    @Operation(summary = "Unread count",
+               description = "Number of unread notifications for the UI badge")
     public ResponseEntity<NotificationDto.UnreadCountResponse> getUnreadCount(
             @RequestHeader("X-User-Id") UUID userId) {
         long count = notificationService.getUnreadCount(userId);
@@ -41,16 +41,16 @@ public class NotificationController {
     }
 
     @PutMapping("/{id}/read")
-    @Operation(summary = "Отметить уведомление прочитанным")
+    @Operation(summary = "Mark notification as read")
     public ResponseEntity<Void> markAsRead(
             @RequestHeader("X-User-Id") UUID userId,
-            @Parameter(description = "ID уведомления") @PathVariable String id) {
+            @Parameter(description = "Notification ID") @PathVariable String id) {
         notificationService.markAsRead(id, userId);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/read-all")
-    @Operation(summary = "Отметить все уведомления прочитанными")
+    @Operation(summary = "Mark all notifications as read")
     public ResponseEntity<Void> markAllAsRead(
             @RequestHeader("X-User-Id") UUID userId) {
         notificationService.markAllAsRead(userId);

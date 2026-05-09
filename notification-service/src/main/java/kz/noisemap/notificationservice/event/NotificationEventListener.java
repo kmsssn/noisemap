@@ -21,7 +21,7 @@ public class NotificationEventListener {
     private static final double NOISE_ALERT_THRESHOLD_DBA = 85.0;
 
     /**
-     * Ачивка разблокирована → push пользователю.
+     * Achievement unlocked → push to user.
      */
     @RabbitListener(queues = RabbitConstants.Q_NOTIFICATION_ACHIEVEMENT)
     public void handleAchievementUnlocked(AchievementUnlockedEvent event) {
@@ -31,8 +31,8 @@ public class NotificationEventListener {
             notificationService.createNotification(
                     event.getUserId(),
                     NotificationType.ACHIEVEMENT_UNLOCKED,
-                    "Новая ачивка: " + event.getAchievementTitle(),
-                    "Вы получили +" + event.getPointsAwarded() + " очков!"
+                    "New achievement: " + event.getAchievementTitle(),
+                    "You earned +" + event.getPointsAwarded() + " points!"
             );
         } catch (Exception e) {
             log.error("Failed to create achievement notification", e);
@@ -40,7 +40,7 @@ public class NotificationEventListener {
     }
 
     /**
-     * Высокий уровень шума → уведомление.
+     * High noise level detected → send alert notification.
      */
     @RabbitListener(queues = RabbitConstants.Q_NOTIFICATION_NOISE_ALERT)
     public void handleNoiseAlert(ClassificationCompletedEvent event) {
@@ -52,8 +52,8 @@ public class NotificationEventListener {
             notificationService.createNotification(
                     event.getUserId(),
                     NotificationType.NOISE_ALERT,
-                    "Высокий уровень шума!",
-                    String.format("Зафиксировано %.1f дБА. Тип шума: %s. Рекомендуется защита слуха.",
+                    "High Noise Level!",
+                    String.format("Recorded %.1f dBA. Noise type: %s. Hearing protection recommended.",
                             event.getNoiseLevelDba(), event.getNoiseClass())
             );
         } catch (Exception e) {
@@ -62,20 +62,19 @@ public class NotificationEventListener {
     }
 
     /**
-     * Запись помечена модерацией → уведомление модераторам.
+     * Recording flagged by moderation → notify moderators.
      */
     @RabbitListener(queues = RabbitConstants.Q_NOTIFICATION_MODERATOR)
     public void handleRecordingFlagged(RecordingFlaggedEvent event) {
         log.info("Notification: recording {} flagged, reason: {}", event.getRecordingId(), event.getReason());
 
-        // TODO: уведомить всех модераторов (получить список из User Service)
-        // Пока логируем — в продакшене здесь будет вызов User Service для получения модераторов
+        // TODO: notify all moderators (fetch list from User Service)
         try {
             notificationService.createNotification(
                     event.getUserId(),
                     NotificationType.RECORDING_FLAGGED,
-                    "Запись отмечена для проверки",
-                    "Ваша запись отправлена на модерацию. Причина: " + event.getReason()
+                    "Recording Flagged for Review",
+                    "Your recording has been sent for moderation. Reason: " + event.getReason()
             );
         } catch (Exception e) {
             log.error("Failed to create flagged notification", e);

@@ -17,7 +17,7 @@ public class GamificationEventListener {
     private final GamificationService gamificationService;
 
     /**
-     * Начислить очки за новую запись (до ML классификации).
+     * Award points for a new recording (before ML classification).
      */
     @RabbitListener(queues = RabbitConstants.Q_GAMIFICATION_RECORDING)
     public void handleRecordingCreated(RecordingCreatedEvent event) {
@@ -30,7 +30,7 @@ public class GamificationEventListener {
     }
 
     /**
-     * Проверить ачивки по результату классификации (тишина, громкость).
+     * Check achievements based on classification result (quiet spot, loud spot).
      */
     @RabbitListener(queues = RabbitConstants.Q_GAMIFICATION_ACHIEVEMENT)
     public void handleClassificationCompleted(ClassificationCompletedEvent event) {

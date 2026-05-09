@@ -15,27 +15,27 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/gamification")
 @RequiredArgsConstructor
-@Tag(name = "Геймификация", description = "Система мотивации: очки, ачивки, уровни, лидерборд. "
-        + "Пользователи получают 10 очков за каждую запись + бонусы за ачивки.")
+@Tag(name = "Gamification", description = "Motivation system: points, achievements, levels, leaderboard. "
+        + "Users earn 10 points per recording plus bonuses for unlocking achievements.")
 public class GamificationController {
 
     private final GamificationService gamificationService;
 
     @GetMapping("/me")
-    @Operation(summary = "Мой профиль геймификации",
-               description = "Возвращает очки, уровень, текущий стрик, список разблокированных ачивок. "
-                       + "Ачивки: Первый шаг (1 запись), Активист (10), Исследователь (50), "
-                       + "Ночной дозор (запись 23:00-5:00), Тишина и покой (<40 дБА) и др.")
+    @Operation(summary = "My gamification profile",
+               description = "Returns points, level, current streak, and list of unlocked achievements. "
+                       + "Achievements: First Step (1 recording), Activist (10), Explorer (50), "
+                       + "Night Owl (recording 23:00–5:00), Peace & Quiet (<40 dBA), and more.")
     public ResponseEntity<GamificationDto.ProfileResponse> getMyProfile(
             @RequestHeader("X-User-Id") UUID userId) {
         return ResponseEntity.ok(gamificationService.getProfile(userId));
     }
 
     @GetMapping("/leaderboard")
-    @Operation(summary = "Лидерборд",
-               description = "Топ пользователей по очкам. Возвращает ранг, очки, количество записей, уровень.")
+    @Operation(summary = "Leaderboard",
+               description = "Top users ranked by points. Returns rank, points, total recordings, and level.")
     public ResponseEntity<List<GamificationDto.LeaderboardEntry>> getLeaderboard(
-            @Parameter(description = "Количество позиций в лидерборде", example = "20")
+            @Parameter(description = "Number of leaderboard entries to return", example = "20")
             @RequestParam(defaultValue = "20") int limit) {
         return ResponseEntity.ok(gamificationService.getLeaderboard(limit));
     }

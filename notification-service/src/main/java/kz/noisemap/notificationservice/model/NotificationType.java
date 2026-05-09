@@ -2,8 +2,8 @@ package kz.noisemap.notificationservice.model;
 
 public enum NotificationType {
     ACHIEVEMENT_UNLOCKED,
-    NOISE_ALERT,           // высокий шум в сохранённом районе
-    RECORDING_FLAGGED,     // запись помечена модерацией
-    MODERATION_ALERT,      // для модераторов
-    WEEKLY_DIGEST          // еженедельный отчёт
+    NOISE_ALERT,           // high noise in a saved area
+    RECORDING_FLAGGED,     // recording flagged by moderation
+    MODERATION_ALERT,      // for moderators
+    WEEKLY_DIGEST          // weekly report
 }

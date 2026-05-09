@@ -28,7 +28,7 @@ public class UserScore {
     private Integer level = 1;
 
     @Builder.Default
-    private Integer currentStreak = 0;  // дней подряд с записью
+    private Integer currentStreak = 0;  // consecutive days with a recording
 
     private Instant lastRecordingDate;
 

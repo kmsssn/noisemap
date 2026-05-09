@@ -17,9 +17,9 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("NoiseMap — Notification Service API")
-                        .description("Уведомления пользователей. "
-                                + "Ачивки, алерты о высоком шуме (>85 дБА), "
-                                + "модераторские уведомления, еженедельные дайджесты.")
+                        .description("User notifications. "
+                                + "Achievements, high noise alerts (>85 dBA), "
+                                + "moderation notifications, weekly digests.")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("NoiseMap Team")
