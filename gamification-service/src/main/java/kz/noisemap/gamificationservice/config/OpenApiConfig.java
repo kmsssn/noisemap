@@ -17,9 +17,9 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("NoiseMap — Gamification Service API")
-                        .description("Система мотивации пользователей. "
-                                + "Очки за записи, ачивки (Первый шаг, Ночной дозор, Тишина и покой и др.), "
-                                + "уровни, лидерборд. Увеличивает вовлечённость на 40-60%.")
+                        .description("User motivation system. "
+                                + "Points for recordings, achievements (First Step, Night Owl, Peace & Quiet, and more), "
+                                + "levels, leaderboard. Boosts engagement by 40–60%.")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("NoiseMap Team")

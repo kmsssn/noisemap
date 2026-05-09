@@ -39,7 +39,7 @@ public class GamificationService {
     private static final int POINTS_PER_LEVEL = 100;
 
     /**
-     * Вызывается при recording.created — начислить очки за запись.
+     * Called on recording.created — award points for the new recording.
      */
     @Transactional
     public void handleNewRecording(RecordingCreatedEvent event) {
@@ -58,20 +58,20 @@ public class GamificationService {
         score.setTotalRecordings(score.getTotalRecordings() + 1);
         score.setLevel(score.getTotalPoints() / POINTS_PER_LEVEL + 1);
 
-        // Стрик: если последняя запись была вчера — продолжаем, иначе сбрасываем
+        // Streak: continue if last recording was yesterday, otherwise reset
         updateStreak(score, event.getRecordedAt());
 
         score.setLastRecordingDate(event.getRecordedAt());
         scoreRepository.save(score);
 
-        // Проверить ачивки по количеству записей
+        // Check achievements by recording count, time, and streak
         checkRecordingAchievements(userId, score);
         checkTimeAchievements(userId, event.getRecordedAt());
         checkStreakAchievements(userId, score);
     }
 
     /**
-     * Вызывается при classification.completed — проверить ачивки по дБА.
+     * Called on classification.completed — check dBA-based achievements.
      */
     @Transactional
     public void handleClassificationResult(ClassificationCompletedEvent event) {
@@ -131,7 +131,7 @@ public class GamificationService {
                 .collect(Collectors.toList());
     }
 
-    // === Приватные методы ===
+    // === Private methods ===
 
     private void updateStreak(UserScore score, Instant recordedAt) {
         if (score.getLastRecordingDate() == null) {
@@ -152,7 +152,7 @@ public class GamificationService {
         } else if (daysBetween > 1) {
             score.setCurrentStreak(1);
         }
-        // daysBetween == 0 — тот же день, стрик не меняется
+        // daysBetween == 0 — same day, streak unchanged
     }
 
     private void checkRecordingAchievements(UUID userId, UserScore score) {
@@ -183,7 +183,7 @@ public class GamificationService {
 
     private void tryUnlockAchievement(UUID userId, AchievementDefinition definition) {
         if (achievementRepository.existsByUserIdAndAchievementCode(userId, definition.getCode())) {
-            return; // Уже получена
+            return; // Already unlocked
         }
 
         UserAchievement achievement = UserAchievement.builder()
@@ -197,14 +197,14 @@ public class GamificationService {
 
         achievementRepository.save(achievement);
 
-        // Добавить бонусные очки за ачивку
+        // Award bonus points for the achievement
         scoreRepository.findById(userId).ifPresent(score -> {
             score.setTotalPoints(score.getTotalPoints() + definition.getPoints());
             score.setLevel(score.getTotalPoints() / POINTS_PER_LEVEL + 1);
             scoreRepository.save(score);
         });
 
-        // Опубликовать событие → Notification Service
+        // Publish event → Notification Service
         AchievementUnlockedEvent event = AchievementUnlockedEvent.builder()
                 .userId(userId)
                 .achievementCode(definition.getCode())
