@@ -34,6 +34,7 @@ docker compose ps
 - Gamification Service: http://localhost:8085/swagger-ui.html
 - Notification Service: http://localhost:8086/swagger-ui.html
 - Moderation Service: http://localhost:8087/swagger-ui.html
+- Comment Service: http://localhost:8088/swagger-ui.html
 - RabbitMQ: http://localhost:15672 (guest/guest)
 
 ## Остановка
