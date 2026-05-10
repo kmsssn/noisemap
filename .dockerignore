@@ -1,0 +1,14 @@
+**/target/
+**/.mvn/
+**/.idea/
+**/.vscode/
+**/.git/
+**/node_modules/
+**/*.iml
+.env
+.env.prod
+.env.production
+**/*.log
+**/Dockerfile
+README.md
+**/README.md
