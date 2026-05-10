@@ -100,7 +100,9 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: api-gateway/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: api-gateway
     restart: unless-stopped
     expose:
       - "8080"
@@ -119,7 +121,9 @@ services:
   user-service:
     build:
       context: .
-      dockerfile: user-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: user-service
     restart: unless-stopped
     expose:
       - "8081"
@@ -136,7 +140,9 @@ services:
   recording-service:
     build:
       context: .
-      dockerfile: recording-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: recording-service
     restart: unless-stopped
     expose:
       - "8082"
@@ -156,7 +162,9 @@ services:
   mapping-service:
     build:
       context: .
-      dockerfile: mapping-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: mapping-service
     restart: unless-stopped
     expose:
       - "8083"
@@ -176,7 +184,9 @@ services:
   statistics-service:
     build:
       context: .
-      dockerfile: statistics-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: statistics-service
     restart: unless-stopped
     expose:
       - "8084"
@@ -196,7 +206,9 @@ services:
   gamification-service:
     build:
       context: .
-      dockerfile: gamification-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: gamification-service
     restart: unless-stopped
     expose:
       - "8085"
@@ -216,7 +228,9 @@ services:
   notification-service:
     build:
       context: .
-      dockerfile: notification-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: notification-service
     restart: unless-stopped
     expose:
       - "8086"
@@ -234,7 +248,9 @@ services:
   moderation-service:
     build:
       context: .
-      dockerfile: moderation-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: moderation-service
     restart: unless-stopped
     expose:
       - "8087"
@@ -252,7 +268,9 @@ services:
   comment-service:
     build:
       context: .
-      dockerfile: comment-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: comment-service
     restart: unless-stopped
     expose:
       - "8088"
