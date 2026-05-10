@@ -1,5 +1,6 @@
 server:
   port: 8085
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -30,6 +31,8 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+  use-fqn: true
+  override-with-generic-response: false
 
 management:
   endpoints:

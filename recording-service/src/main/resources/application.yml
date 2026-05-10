@@ -1,5 +1,6 @@
 server:
   port: 8082
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -29,6 +30,8 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
     display-request-duration: true
+  use-fqn: true
+  override-with-generic-response: false
 
 management:
   endpoints:
