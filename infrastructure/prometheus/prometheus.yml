@@ -65,3 +65,10 @@ scrape_configs:
       - targets: ['comment-service:8088']
         labels:
           application: 'comment-service'
+
+  - job_name: 'rabbitmq'
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ 'rabbitmq:15692' ]
+        labels:
+          application: 'rabbitmq'
