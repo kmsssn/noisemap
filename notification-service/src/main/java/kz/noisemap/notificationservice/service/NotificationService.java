@@ -50,7 +50,7 @@ public class NotificationService {
                 .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
 
         if (!notification.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("Access denied");
+            throw new SecurityException("Access denied");
         }
 
         notification.setRead(true);

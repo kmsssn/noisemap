@@ -52,7 +52,7 @@ public class AuthService {
         }
 
         if (!user.getActive()) {
-            throw new IllegalStateException("Account is deactivated");
+            throw new SecurityException("Account is deactivated");
         }
 
         return generateTokens(user);
