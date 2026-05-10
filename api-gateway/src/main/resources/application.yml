@@ -118,7 +118,7 @@ spring:
       port: 6379
 
 jwt:
-  secret: ${JWT_SECRET:noisemap-dev-secret-key-change-in-production-min-32-chars}
+  secret: ${JWT_SECRET}
 
 # Swagger UI на Gateway агрегирует документацию всех сервисов
 springdoc:

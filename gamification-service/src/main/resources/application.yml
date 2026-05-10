@@ -6,11 +6,10 @@ spring:
     name: gamification-service
   datasource:
     url: jdbc:postgresql://postgres:5432/noisemap_gamification
-    username: ${DB_USERNAME:noisemap}
-    password: ${DB_PASSWORD:noisemap}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      # Flyway управляет схемой — Hibernate только валидирует
       ddl-auto: validate
     show-sql: false
   flyway:
@@ -19,8 +18,8 @@ spring:
   rabbitmq:
     host: rabbitmq
     port: 5672
-    username: ${RABBIT_USER:guest}
-    password: ${RABBIT_PASS:guest}
+    username: ${RABBIT_USER}
+    password: ${RABBIT_PASS}
 
 services:
   user-service:
@@ -31,3 +30,9 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

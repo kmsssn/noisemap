@@ -6,8 +6,8 @@ spring:
     name: user-service
   datasource:
     url: jdbc:postgresql://postgres:5432/noisemap_users
-    username: ${DB_USERNAME:noisemap}
-    password: ${DB_PASSWORD:noisemap}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,9 +17,9 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 jwt:
-  secret: ${JWT_SECRET:noisemap-dev-secret-key-change-in-production-min-32-chars}
-  access-expiration-ms: 3600000    # 1 час
-  refresh-expiration-ms: 604800000  # 7 дней
+  secret: ${JWT_SECRET}
+  access-expiration-ms: 3600000
+  refresh-expiration-ms: 604800000
 
 springdoc:
   api-docs:
