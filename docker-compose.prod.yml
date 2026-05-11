@@ -140,6 +140,13 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM:-${MAIL_USERNAME}}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-NoiseWatch}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://${DOMAIN}}
     depends_on:
       postgres:
         condition: service_healthy

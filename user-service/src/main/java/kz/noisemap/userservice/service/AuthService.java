@@ -21,17 +21,25 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailService emailService;
+
+    private String normalizeEmail(String email) {
+        if (email == null) return null;
+        return email.trim().toLowerCase();
+    }
 
     @Transactional
     public AuthDto.TokenResponse register(AuthDto.RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = normalizeEmail(request.getEmail());
+
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already registered");
         }
 
         User user = User.builder()
-                .email(request.getEmail())
+                .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .displayName(request.getDisplayName())
+                .displayName(request.getDisplayName().trim())
                 .role(Role.USER)
                 .language(request.getLanguage() != null ? request.getLanguage() : "ru")
                 .deviceModel(request.getDeviceModel())
@@ -43,7 +51,9 @@ public class AuthService {
     }
 
     public AuthDto.TokenResponse login(AuthDto.LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        String email = normalizeEmail(request.getEmail());
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
         // Неверный пароль → 401, не 500
@@ -58,33 +68,31 @@ public class AuthService {
         return generateTokens(user);
     }
 
-    /**
-     * Сброс пароля — генерирует временный токен.
-     * В реальной системе нужно отправлять email.
-     * Для MVP возвращает токен напрямую.
-     */
+
     @Transactional
     public AuthDto.ResetPasswordResponse requestPasswordReset(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Email not found"));
+        String normalizedEmail = normalizeEmail(email);
 
-        // Генерируем одноразовый токен для сброса пароля (живёт 1 час)
-        String resetToken = jwtService.generatePasswordResetToken(user);
+        userRepository.findByEmail(normalizedEmail).ifPresent(user -> {
+            String resetToken = jwtService.generatePasswordResetToken(user);
 
-        log.info("Password reset requested for: {}", email);
+            // Асинхронная отправка письма — не блокирует HTTP запрос
+            emailService.sendPasswordResetEmail(
+                    user.getEmail(),
+                    user.getDisplayName(),
+                    resetToken
+            );
 
-        // TODO: отправить email с токеном
-        // emailService.sendPasswordReset(email, resetToken);
+            log.info("Password reset requested for: {}", normalizedEmail);
+        });
+
 
         return AuthDto.ResetPasswordResponse.builder()
-                .message("Password reset token generated. Check your email.")
-                .resetToken(resetToken) // в продакшене убрать из ответа, только через email
+                .message("If the email exists, a password reset link has been sent")
                 .build();
     }
 
-    /**
-     * Установить новый пароль по токену сброса.
-     */
+
     @Transactional
     public void resetPassword(AuthDto.SetNewPasswordRequest request) {
         UUID userId = jwtService.parsePasswordResetToken(request.getResetToken());
@@ -92,9 +100,59 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password must be different from the current password");
+        }
+
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         log.info("Password reset for user: {}", user.getEmail());
+    }
+
+
+    @Transactional
+    public void changePassword(UUID userId, AuthDto.ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password must be different from the current password");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("Password changed for user: {}", user.getEmail());
+    }
+
+
+    @Transactional
+    public AuthDto.TokenResponse changeEmail(UUID userId, AuthDto.ChangeEmailRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+
+        String newEmail = normalizeEmail(request.getNewEmail());
+
+        if (newEmail.equals(user.getEmail())) {
+            throw new IllegalArgumentException("New email must be different from the current");
+        }
+
+        if (userRepository.existsByEmail(newEmail)) {
+            throw new IllegalArgumentException("Email already in use");
+        }
+
+        user.setEmail(newEmail);
+        userRepository.save(user);
+        log.info("Email changed for user: {} -> {}", userId, newEmail);
+
+        return generateTokens(user);
     }
 
     private AuthDto.TokenResponse generateTokens(User user) {

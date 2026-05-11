@@ -63,7 +63,6 @@ public class RecordingController {
                 @RequestParam(value = "recordedAt", required = false) Instant recordedAt
     ) throws IOException {
 
-        // Базовая валидация координат — раньше делалась через @Min/@Max в DTO
         if (latitude < -90 || latitude > 90) {
             throw new IllegalArgumentException("latitude must be in [-90, 90]");
         }
