@@ -14,16 +14,17 @@
 
 ## Сервисы
 
-| Сервис | Порт | БД | Назначение |
-|--------|------|----|------------|
-| api-gateway | 8080 | Redis | Маршрутизация, проверка JWT |
-| user-service | 8081 | PostgreSQL | Регистрация, авторизация, профили |
-| recording-service | 8082 | MongoDB | Приём и хранение аудиозаписей |
-| mapping-service | 8083 | MongoDB + Redis | Тепловая карта шума |
-| statistics-service | 8084 | MongoDB + Redis | Аналитика |
-| gamification-service | 8085 | PostgreSQL | Очки, ачивки, лидерборд |
-| notification-service | 8086 | MongoDB | Уведомления |
-| moderation-service | 8087 | MongoDB | Модерация данных |
+| Сервис               | Порт | БД | Назначение                      |
+|----------------------|------|----|---------------------------------|
+| api-gateway          | 8080 | Redis | Маршрутизация, проверка JWT     |
+| user-service         | 8081 | PostgreSQL | Регистрация, авторизация, профили |
+| recording-service    | 8082 | MongoDB | Приём и хранение аудиозаписей   |
+| mapping-service      | 8083 | MongoDB + Redis | Тепловая карта шума             |
+| statistics-service   | 8084 | MongoDB + Redis | Аналитика                       |
+| gamification-service | 8085 | PostgreSQL | Очки, ачивки, лидерборд         |
+| notification-service | 8086 | MongoDB | Уведомления                     |
+| moderation-service   | 8087 | MongoDB | Модерация данных                |
+| comment-service       | 8087 | MongoDB | Комментарии                     |
 
 ## Технологии
 
