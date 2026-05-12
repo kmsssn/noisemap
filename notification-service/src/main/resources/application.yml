@@ -1,6 +1,5 @@
 server:
   port: 8086
-  forward-headers-strategy: framework
 
 spring:
   application:
@@ -24,6 +23,10 @@ springdoc:
     display-request-duration: true
   use-fqn: true
   override-with-generic-response: false
+
+app:
+  moderation:
+    moderator-ids: ${MODERATOR_IDS:}
 
 management:
   endpoints:

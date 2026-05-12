@@ -1,8 +1,9 @@
 #!/bin/bash
 # ============================================================
 # NoiseMap Demo Script
-# Прогоняет полный цикл: регистрация → загрузка записи →
-# геймификация → статистика → карта → уведомления
+# Прогоняет полный цикл: регистрация → устройство →
+# загрузка записи → геймификация → статистика → карта →
+# уведомления → лидерборд
 # ============================================================
 
 set -e
@@ -45,10 +46,9 @@ REGISTER_RESPONSE=$(curl -s -X POST "$USER_SVC/api/v1/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "demo_'$RANDOM'@noisemap.kz",
-    "password": "demo123456",
+    "password": "DemoPass123!",
     "displayName": "Demo User",
-    "language": "ru",
-    "deviceModel": "Samsung Galaxy S24"
+    "language": "ru"
   }')
 
 echo "  Response: $REGISTER_RESPONSE"
@@ -67,23 +67,24 @@ USER_ID=$(echo $ACCESS_TOKEN | cut -d'.' -f2 | base64 -d 2>/dev/null | grep -o '
 echo -e "  ${GREEN}✅ User ID: $USER_ID${NC}"
 echo ""
 
-# ---- 2. Login ----
+# ---- 2. Profile ----
 echo -e "${YELLOW}[3/9] Получение профиля...${NC}"
 PROFILE=$(curl -s "$USER_SVC/api/v1/users/me" \
   -H "X-User-Id: $USER_ID")
 echo "  $PROFILE"
 echo ""
 
-# ---- 3. Update device calibration ----
-echo -e "${YELLOW}[4/9] Обновление калибровки устройства...${NC}"
-DEVICE_RESPONSE=$(curl -s -X PUT "$USER_SVC/api/v1/users/me/device" \
-  -H "Content-Type: application/json" \
+# ---- 3. Device calibration справочник ----
+echo -e "${YELLOW}[4/9] Калибровка устройства из справочника...${NC}"
+DEVICE_CALIBRATION=$(curl -s "$USER_SVC/api/v1/devices/calibration?model=Samsung%20Galaxy%20S24" \
   -H "X-User-Id: $USER_ID" \
-  -d '{
-    "deviceModel": "Samsung Galaxy S24",
-    "calibrationOffset": -2.5
-  }')
-echo "  $DEVICE_RESPONSE"
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+echo "  Samsung Galaxy S24: $DEVICE_CALIBRATION"
+
+DEVICE_CALIBRATION2=$(curl -s "$USER_SVC/api/v1/devices/calibration?model=iPhone%2013%20Pro" \
+  -H "X-User-Id: $USER_ID" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+echo "  iPhone 13 Pro: $DEVICE_CALIBRATION2"
 echo ""
 
 # ---- 4. Check gamification (should be empty) ----
@@ -119,20 +120,25 @@ echo "  $LEADERBOARD"
 echo ""
 
 # ---- Summary ----
-echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║              Демо завершено!                 ║${NC}"
-echo -e "${CYAN}╠══════════════════════════════════════════════╣${NC}"
-echo -e "${CYAN}║                                              ║${NC}"
-echo -e "${CYAN}║  Swagger UI каждого сервиса:                 ║${NC}"
-echo -e "${CYAN}║  • User:         localhost:8081/swagger-ui    ║${NC}"
-echo -e "${CYAN}║  • Recording:    localhost:8082/swagger-ui    ║${NC}"
-echo -e "${CYAN}║  • Mapping:      localhost:8083/swagger-ui    ║${NC}"
-echo -e "${CYAN}║  • Statistics:   localhost:8084/swagger-ui    ║${NC}"
-echo -e "${CYAN}║  • Gamification: localhost:8085/swagger-ui    ║${NC}"
-echo -e "${CYAN}║  • Notification: localhost:8086/swagger-ui    ║${NC}"
-echo -e "${CYAN}║  • Moderation:   localhost:8087/swagger-ui    ║${NC}"
-echo -e "${CYAN}║                                              ║${NC}"
-echo -e "${CYAN}║  RabbitMQ UI:    localhost:15672              ║${NC}"
-echo -e "${CYAN}║  (guest/guest)                               ║${NC}"
-echo -e "${CYAN}║                                              ║${NC}"
-echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}╔═════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║              Демо завершено!                    ║${NC}"
+echo -e "${CYAN}╠═════════════════════════════════════════════════╣${NC}"
+echo -e "${CYAN}║                                                 ║${NC}"
+echo -e "${CYAN}║  Swagger UI (агрегированный через Gateway):     ║${NC}"
+echo -e "${CYAN}║  http://localhost:8080/swagger-ui.html          ║${NC}"
+echo -e "${CYAN}║                                                 ║${NC}"
+echo -e "${CYAN}║  Swagger UI каждого сервиса напрямую:           ║${NC}"
+echo -e "${CYAN}║  • User:         localhost:8081/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║  • Recording:    localhost:8082/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║  • Mapping:      localhost:8083/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║  • Statistics:   localhost:8084/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║  • Gamification: localhost:8085/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║  • Notification: localhost:8086/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║  • Moderation:   localhost:8087/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║  • Comment:      localhost:8088/swagger-ui.html ║${NC}"
+echo -e "${CYAN}║                                                 ║${NC}"
+echo -e "${CYAN}║  RabbitMQ UI:    localhost:15672 (guest/guest)  ║${NC}"
+echo -e "${CYAN}║  Prometheus:     localhost:9090                 ║${NC}"
+echo -e "${CYAN}║  Grafana:        localhost:3000 (admin/admin)   ║${NC}"
+echo -e "${CYAN}║                                                 ║${NC}"
+echo -e "${CYAN}╚═════════════════════════════════════════════════╝${NC}"

@@ -22,6 +22,10 @@ storage:
   audio:
     path: /data/audio
 
+services:
+  user-service:
+    url: http://user-service:8081
+
 springdoc:
   api-docs:
     path: /v3/api-docs

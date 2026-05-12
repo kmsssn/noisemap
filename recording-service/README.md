@@ -1,25 +1,42 @@
 # Recording Service
 
-Принимает аудиозаписи от пользователей, сохраняет файл и метаданные, отправляет событие в RabbitMQ для дальнейшей обработки. Хранит данные в MongoDB.
+Принимает аудиозаписи, сохраняет файл и метаданные, подтягивает калибровку устройства, публикует событие в RabbitMQ. Хранит данные в MongoDB.
 
 ## API
 
 ### POST /api/v1/recordings
 
-Загрузить аудиозапись. Формат: multipart/form-data. Возвращает 202 Accepted — классификация выполняется асинхронно.
+Загрузить аудиозапись. Формат: `multipart/form-data` с плоскими параметрами (не JSON metadata).
+Возвращает 202 Accepted — классификация выполняется асинхронно через RabbitMQ.
 
-Параметры:
-- `audio` — аудиофайл (до 10 МБ)
-- `metadata` — JSON с координатами
+| Параметр | Тип | Обязательный | Описание |
+|----------|-----|--------------|----------|
+| audio | file | ДА           | Аудиофайл mp3/wav/m4a, до 10 МБ |
+| latitude | double | ДА           | Широта (-90..90), например 43.238 |
+| longitude | double | ДА           | Долгота (-180..180), например 76.945 |
+| deviceModel | string | НЕТ          | Модель устройства, например "iPhone 13 Pro" |
+| recordedAt | string | НЕТ          | ISO-8601 UTC, например 2026-05-09T10:00:00Z |
 
-Метаданные:
-```json
-{
-  "latitude": 43.238,
-  "longitude": 76.945,
-  "deviceModel": "Samsung Galaxy S24",
-  "recordedAt": "2026-04-08T12:00:00Z"
-}
+**Пример curl:**
+```bash
+curl -X POST "http://localhost:8082/api/v1/recordings" \
+  -H "X-User-Id: 99c03677-9069-41fe-9b25-2a75de3d3dca" \
+  -F "audio=@sound.wav;type=audio/wav" \
+  -F "latitude=43.238" \
+  -F "longitude=76.945" \
+  -F "deviceModel=Samsung Galaxy S24" \
+  -F "recordedAt=2026-05-09T10:00:00Z"
+```
+
+**Через API Gateway (production):**
+```bash
+curl -X POST "https://noisemap.duckdns.org/api/v1/recordings" \
+  -H "Authorization: Bearer eyJ..." \
+  -H "X-User-Id: 99c03677-9069-41fe-9b25-2a75de3d3dca" \
+  -F "audio=@sound.wav;type=audio/wav" \
+  -F "latitude=43.238" \
+  -F "longitude=76.945" \
+  -F "deviceModel=iPhone 13 Pro"
 ```
 
 Ответ (202):
@@ -32,22 +49,16 @@
   "noiseLevelDba": null,
   "noiseClass": null,
   "confidenceScore": null,
-  "recordedAt": "2026-04-08T12:00:00Z",
-  "createdAt": "2026-04-08T12:00:01Z"
+  "recordedAt": "2026-05-09T10:00:00Z",
+  "createdAt": "2026-05-09T10:00:01Z"
 }
-```
-
-Пример curl:
-```bash
-curl -X POST http://localhost:8082/api/v1/recordings \
-  -H "X-User-Id: 99c03677-9069-41fe-9b25-2a75de3d3dca" \
-  -F "audio=@sound.wav;type=audio/wav" \
-  -F 'metadata={"latitude":43.238,"longitude":76.945,"deviceModel":"Samsung Galaxy S24"};type=application/json'
 ```
 
 ### GET /api/v1/recordings/my
 
 Мои записи с пагинацией. Требует `X-User-Id`.
+
+Параметры: `page=0`, `size=20`, `sort=createdAt,desc`
 
 Ответ (200):
 ```json
@@ -61,11 +72,11 @@ curl -X POST http://localhost:8082/api/v1/recordings \
       "noiseLevelDba": 72.5,
       "noiseClass": "traffic",
       "confidenceScore": 0.89,
-      "recordedAt": "2026-04-08T12:00:00Z",
-      "createdAt": "2026-04-08T12:00:01Z"
+      "recordedAt": "2026-05-09T10:00:00Z",
+      "createdAt": "2026-05-09T10:00:01Z"
     }
   ],
-  "totalElements": 1,
+  "totalElements": 5,
   "totalPages": 1
 }
 ```
@@ -78,16 +89,45 @@ curl -X POST http://localhost:8082/api/v1/recordings \
 
 Количество записей пользователя. Ответ: `5`
 
+---
+
+## Калибровка устройства
+
+При загрузке каждой записи recording-service **автоматически** запрашивает calibrationOffset из user-service:
+
+```
+POST /api/v1/recordings {deviceModel: "Samsung Galaxy S24"}
+        ↓
+recording-service → GET user-service:8081/api/v1/devices/calibration?model=Samsung Galaxy S24
+        ↓
+Если устройство есть в справочнике → offset = -1.5 dB
+Если нет → user-service создаёт запись с offset = 0.0 (auto-cataloguing)
+        ↓
+Recording сохраняется с calibrationOffset = -1.5
+RabbitMQ событие включает calibrationOffset для ML-сервиса
+```
+
+Fail-safe: если user-service недоступен — offset=0.0, запись всё равно принимается.
+
+---
+
 ## Статусы записи
 
-- **PENDING** — загружена, ждёт ML классификации
-- **CLASSIFIED** — ML обработал, есть результат
-- **FLAGGED** — помечена модерацией как подозрительная
-- **REJECTED** — отклонена модератором
+| Статус | Описание |
+|--------|----------|
+| PENDING | Загружена, ждёт ML классификации |
+| CLASSIFIED | ML обработал, есть результат dBA + noiseClass |
+| FLAGGED | Помечена модерацией как подозрительная |
+| REJECTED | Отклонена модератором |
+
+---
 
 ## События RabbitMQ
 
-При загрузке записи публикуется `recording.created`:
+### Публикует: `recording.created`
+
+Уходит в три очереди: `ml.classification.queue`, `moderation.check.queue`, `gamification.recording.queue`.
+
 ```json
 {
   "recordingId": "69dfe928e2c8de4e34b2b6bb",
@@ -96,29 +136,28 @@ curl -X POST http://localhost:8082/api/v1/recordings \
   "latitude": 43.238,
   "longitude": 76.945,
   "deviceModel": "Samsung Galaxy S24",
-  "calibrationOffset": -2.5,
-  "recordedAt": "2026-04-08T12:00:00Z",
-  "publishedAt": "2026-04-08T12:00:01Z"
+  "calibrationOffset": -1.5,
+  "recordedAt": "2026-05-09T10:00:00Z",
+  "publishedAt": "2026-05-09T10:00:01Z"
 }
 ```
 
-Уходит в очереди: `ml.classification.queue`, `moderation.check.queue`, `gamification.recording.queue`.
+### Слушает: `recording.classification.result.queue`
 
-## Модель данных
+Получает результаты ML классификации и обновляет запись.
 
-Коллекция `recordings` в MongoDB:
+---
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| _id | ObjectId | автоматический |
-| userId | UUID | |
-| audioFileUrl | String | путь к файлу |
-| location | double[2] | [lng, lat], геоиндекс 2dsphere |
-| deviceModel | String | |
-| calibrationOffset | Double | |
-| status | String | PENDING, CLASSIFIED, FLAGGED, REJECTED |
-| noiseLevelDba | Double | заполняется после ML |
-| noiseClass | String | заполняется после ML |
-| confidenceScore | Double | заполняется после ML |
-| recordedAt | Instant | |
-| createdAt | Instant | |
+## Хранилище файлов
+
+Аудиофайлы хранятся в `/data/audio/{userId}/{recordingId}.{ext}`.
+В production — Docker volume `audio_data` смонтирован в `/data/audio`.
+
+---
+
+## Локальный запуск
+
+```bash
+mvn spring-boot:run -pl recording-service -Dspring-boot.run.profiles=local
+open http://localhost:8082/swagger-ui.html
+```
