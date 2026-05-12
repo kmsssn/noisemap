@@ -17,6 +17,10 @@ spring:
           uri: http://user-service:8081
           predicates:
             - Path=/api/v1/users/**
+        - id: user-service-devices
+          uri: http://user-service:8081
+          predicates:
+            - Path=/api/v1/devices/**
 
         # === Recording Service ===
         - id: recording-service
