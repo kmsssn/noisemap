@@ -20,8 +20,6 @@ public class UserDto {
         private String displayName;
         private String role;
         private String language;
-        private String deviceModel;
-        private Double calibrationOffset;
         private Instant createdAt;
     }
 
@@ -32,14 +30,5 @@ public class UserDto {
     public static class UpdateRequest {
         private String displayName;
         private String language;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class DeviceUpdateRequest {
-        private String deviceModel;
-        private Double calibrationOffset;
     }
 }

@@ -28,18 +28,6 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
-    @Transactional
-    public UserDto.Response updateDevice(UUID userId, UserDto.DeviceUpdateRequest request) {
-        User user = findById(userId);
-        if (request.getDeviceModel() != null) user.setDeviceModel(request.getDeviceModel());
-        if (request.getCalibrationOffset() != null) user.setCalibrationOffset(request.getCalibrationOffset());
-        return toResponse(userRepository.save(user));
-    }
-
-    public Double getCalibrationOffset(UUID userId) {
-        return findById(userId).getCalibrationOffset();
-    }
-
     /**
      * Публичная информация — только displayName.
      * Используется другими сервисами (gamification лидерборд).
@@ -64,8 +52,6 @@ public class UserService {
                 .displayName(user.getDisplayName())
                 .role(user.getRole().name())
                 .language(user.getLanguage())
-                .deviceModel(user.getDeviceModel())
-                .calibrationOffset(user.getCalibrationOffset())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

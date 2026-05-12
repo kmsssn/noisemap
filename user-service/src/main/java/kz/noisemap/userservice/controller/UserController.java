@@ -15,7 +15,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-@Tag(name = "Пользователи", description = "Профиль, настройки, калибровка устройства")
+@Tag(name = "Пользователи", description = "Профиль и настройки")
 public class UserController {
 
     private final UserService userService;
@@ -35,29 +35,14 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(userId, request));
     }
 
-    @PutMapping("/me/device")
-    @Operation(summary = "Обновить данные устройства",
-               description = "Установить модель и калибровочный offset в дБ")
-    public ResponseEntity<UserDto.Response> updateDevice(
-            @Parameter(description = "UUID пользователя") @RequestHeader("X-User-Id") UUID userId,
-            @RequestBody UserDto.DeviceUpdateRequest request) {
-        return ResponseEntity.ok(userService.updateDevice(userId, request));
-    }
-
-    @GetMapping("/{userId}/calibration")
-    @Operation(summary = "Калибровка устройства (internal)")
-    public ResponseEntity<Double> getCalibration(@PathVariable UUID userId) {
-        return ResponseEntity.ok(userService.getCalibrationOffset(userId));
-    }
-
     /**
      * Публичный endpoint — только displayName.
      * Используется gamification-service для лидерборда.
      */
     @GetMapping("/{userId}/public")
     @Operation(summary = "Публичные данные пользователя",
-               description = "Возвращает только публичную информацию: id и displayName. "
-                       + "Используется для лидерборда.")
+            description = "Возвращает только публичную информацию: id и displayName. "
+                    + "Используется для лидерборда.")
     public ResponseEntity<PublicUserDto> getPublicInfo(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.getPublicInfo(userId));
     }
