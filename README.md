@@ -24,7 +24,7 @@
 | gamification-service | 8085 | PostgreSQL | Очки, ачивки, лидерборд         |
 | notification-service | 8086 | MongoDB | Уведомления                     |
 | moderation-service   | 8087 | MongoDB | Модерация данных                |
-| comment-service       | 8087 | MongoDB | Комментарии                     |
+| comment-service       | 8088 | MongoDB | Комментарии                     |
 
 ## Технологии
 
