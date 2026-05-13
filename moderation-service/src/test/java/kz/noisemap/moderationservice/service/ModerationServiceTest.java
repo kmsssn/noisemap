@@ -41,9 +41,6 @@ class ModerationServiceTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        // По умолчанию нет флагов за последний час
-        when(moderationRepository.countByUserIdAndFlaggedAtAfter(any(UUID.class), any(Instant.class)))
-                .thenReturn(0L);
     }
 
     // === Координаты ===
@@ -58,11 +55,12 @@ class ModerationServiceTest {
     })
     @DisplayName("Валидные координаты Алматы — не флагируются")
     void checkRecording_validAlmatyCoordinates_noFlag(double lat, double lng) {
-        RecordingCreatedEvent event = buildEvent(lat, lng);
+        // Координаты валидные → доходим до spam check → нужен stub
+        when(moderationRepository.countByUserIdAndFlaggedAtAfter(eq(userId), any(Instant.class)))
+                .thenReturn(0L);
 
-        service.checkRecording(event);
+        service.checkRecording(buildEvent(lat, lng));
 
-        // Не должен сохранять и публиковать событие
         verify(moderationRepository, never()).save(any());
         verifyNoInteractions(rabbitTemplate);
     }
@@ -79,9 +77,7 @@ class ModerationServiceTest {
     })
     @DisplayName("Координаты за пределами Алматы → out_of_bounds")
     void checkRecording_outsideAlmaty_flaggedAsOutOfBounds(double lat, double lng) {
-        RecordingCreatedEvent event = buildEvent(lat, lng);
-
-        service.checkRecording(event);
+        service.checkRecording(buildEvent(lat, lng));
 
         verify(moderationRepository).save(argThat(r ->
                 "out_of_bounds".equals(r.getReason())
@@ -92,8 +88,6 @@ class ModerationServiceTest {
                 any(RecordingFlaggedEvent.class)
         );
     }
-
-    // === Spam detection ===
 
     @Test
     @DisplayName("Spam: менее 5 флагов за час — не флагируется")
@@ -135,9 +129,6 @@ class ModerationServiceTest {
     @Test
     @DisplayName("out_of_bounds имеет приоритет над spam_pattern (ранний возврат)")
     void checkRecording_outOfBoundsAndSpam_flagsOnlyOutOfBounds() {
-        when(moderationRepository.countByUserIdAndFlaggedAtAfter(eq(userId), any(Instant.class)))
-                .thenReturn(10L);
-
         service.checkRecording(buildEvent(55.751, 37.617)); // Москва
 
         verify(moderationRepository, times(1)).save(argThat(r ->
@@ -156,6 +147,7 @@ class ModerationServiceTest {
         verify(moderationRepository).countByUserIdAndFlaggedAtAfter(eq(userId), any(Instant.class));
         verify(moderationRepository, never()).countByUserId(any());
     }
+
 
     private RecordingCreatedEvent buildEvent(double lat, double lng) {
         return RecordingCreatedEvent.builder()
