@@ -15,9 +15,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DeviceCalibrationService — unit tests")
@@ -27,26 +32,28 @@ class DeviceCalibrationServiceTest {
 
     @InjectMocks DeviceCalibrationService service;
 
-
     @ParameterizedTest(name = "model={0} → manufacturer={1}")
     @CsvSource({
             "iPhone 13 Pro,Apple",
             "IPHONE 15,Apple",
+            "iPad Pro,Apple",
             "Galaxy S24 Ultra,Samsung",
             "samsung galaxy s23,Samsung",
             "Pixel 8 Pro,Google",
             "Redmi Note 12,Xiaomi",
             "POCO X5 Pro,Xiaomi",
-            "Mi 13,Xiaomi",
+            "Xiaomi Mi 13,Xiaomi",
             "Huawei P60,Huawei",
             "Honor 90,Huawei",
             "OnePlus 11,OnePlus",
             "Realme GT Neo 5,Realme",
-            "Some Unknown Device,Unknown"
+            "Oppo Reno 10,Oppo",
+            "Vivo V29,Vivo",
+            "Some Random Device,Unknown",
+            "Mi 13,Unknown"  // одиночное 'Mi' не распознаётся — намеренно
     })
     @DisplayName("guessManufacturer: правильно определяет производителя")
     void guessManufacturer(String model, String expectedManufacturer) {
-        // guessManufacturer вызывается внутри getCalibrationOrCreate при создании новой записи
         when(repository.findByModelIgnoreCase(model)).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(inv -> {
             DeviceCalibration saved = inv.getArgument(0);
@@ -60,6 +67,7 @@ class DeviceCalibrationServiceTest {
                 expectedManufacturer.equals(d.getManufacturer())
         ));
     }
+
 
     @Test
     @DisplayName("Известное устройство: возвращает из справочника, инкрементирует счётчик")
@@ -107,9 +115,9 @@ class DeviceCalibrationServiceTest {
 
         verify(repository).save(argThat(d ->
                 "MyCustomPhone XYZ".equals(d.getModel()) &&
-                d.getCalibrationOffsetDb() == 0.0 &&
-                !d.getVerified() &&
-                "auto".equals(d.getSource())
+                        d.getCalibrationOffsetDb() == 0.0 &&
+                        !d.getVerified() &&
+                        "auto".equals(d.getSource())
         ));
     }
 
@@ -132,6 +140,7 @@ class DeviceCalibrationServiceTest {
         verifyNoInteractions(repository);
     }
 
+    // === create ===
 
     @Test
     @DisplayName("create: дублирующая модель бросает исключение")
@@ -145,7 +154,7 @@ class DeviceCalibrationServiceTest {
                         .calibrationOffsetDb(-2.5)
                         .build()
         )).isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("already exists");
+                .hasMessageContaining("already exists");
     }
 
     @Test
@@ -159,6 +168,6 @@ class DeviceCalibrationServiceTest {
                         .calibrationOffsetDb(-3.0)
                         .build()
         )).isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("not found");
+                .hasMessageContaining("not found");
     }
 }
