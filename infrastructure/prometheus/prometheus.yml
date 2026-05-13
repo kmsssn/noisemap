@@ -24,13 +24,6 @@ scrape_configs:
         labels:
           application: 'recording-service'
 
-  - job_name: 'mapping-service'
-    metrics_path: /actuator/prometheus
-    static_configs:
-      - targets: ['mapping-service:8083']
-        labels:
-          application: 'mapping-service'
-
   - job_name: 'statistics-service'
     metrics_path: /actuator/prometheus
     static_configs:

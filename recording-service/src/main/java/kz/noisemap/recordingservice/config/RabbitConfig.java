@@ -10,16 +10,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
 
-    /**
-     * Topic exchange — одно событие может уходить в несколько очередей.
-     */
     @Bean
     public TopicExchange noiseMapExchange() {
         return new TopicExchange(RabbitConstants.EXCHANGE, true, false);
     }
 
     // === Очереди, которые слушают recording.created ===
-
     @Bean
     public Queue mlClassificationQueue() {
         return QueueBuilder.durable(RabbitConstants.Q_ML_CLASSIFICATION).build();
@@ -36,7 +32,6 @@ public class RabbitConfig {
     }
 
     // === Bindings: recording.created → 3 очереди ===
-
     @Bean
     public Binding mlClassificationBinding() {
         return BindingBuilder.bind(mlClassificationQueue())
@@ -59,12 +54,6 @@ public class RabbitConfig {
     }
 
     // === Очереди, которые слушают classification.completed ===
-
-    @Bean
-    public Queue mappingUpdateQueue() {
-        return QueueBuilder.durable(RabbitConstants.Q_MAPPING_UPDATE).build();
-    }
-
     @Bean
     public Queue statisticsUpdateQueue() {
         return QueueBuilder.durable(RabbitConstants.Q_STATISTICS_UPDATE).build();
@@ -80,14 +69,7 @@ public class RabbitConfig {
         return QueueBuilder.durable(RabbitConstants.Q_NOTIFICATION_NOISE_ALERT).build();
     }
 
-    // === Bindings: classification.completed → 4 очереди ===
-
-    @Bean
-    public Binding mappingUpdateBinding() {
-        return BindingBuilder.bind(mappingUpdateQueue())
-                .to(noiseMapExchange())
-                .with(RabbitConstants.RK_CLASSIFICATION_COMPLETED);
-    }
+    // === Bindings: classification.completed → 3 очереди ===
 
     @Bean
     public Binding statisticsUpdateBinding() {
@@ -136,9 +118,6 @@ public class RabbitConfig {
                 .with(RabbitConstants.RK_RECORDING_FLAGGED);
     }
 
-    /**
-     * JSON сериализация для RabbitMQ сообщений.
-     */
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();

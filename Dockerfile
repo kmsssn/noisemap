@@ -11,7 +11,6 @@ COPY ${SERVICE_NAME} ${SERVICE_NAME}
 COPY api-gateway/pom.xml api-gateway/pom.xml
 COPY user-service/pom.xml user-service/pom.xml
 COPY recording-service/pom.xml recording-service/pom.xml
-COPY mapping-service/pom.xml mapping-service/pom.xml
 COPY statistics-service/pom.xml statistics-service/pom.xml
 COPY gamification-service/pom.xml gamification-service/pom.xml
 COPY notification-service/pom.xml notification-service/pom.xml

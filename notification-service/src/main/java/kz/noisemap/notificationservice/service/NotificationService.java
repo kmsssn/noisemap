@@ -4,8 +4,11 @@ import kz.noisemap.notificationservice.dto.NotificationDto;
 import kz.noisemap.notificationservice.model.Notification;
 import kz.noisemap.notificationservice.model.NotificationType;
 import kz.noisemap.notificationservice.repository.NotificationRepository;
+import kz.noisemap.notificationservice.websocket.WebSocketNotificationPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,14 +20,13 @@ import java.util.UUID;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-
-    // Раскомментировать и внедрить FcmService когда появятся Firebase credentials.
-    // private final FcmService fcmService;
+    private final WebSocketNotificationPublisher webSocketPublisher;
 
     /**
-     * Создать in-app уведомление и (в будущем) отправить push через FCM.
+     * Создать уведомление в MongoDB и отправить по WebSocket в реальном времени.
      */
     public void createNotification(UUID userId, NotificationType type, String title, String message) {
+        // 1. Сохранить в MongoDB
         Notification notification = Notification.builder()
                 .userId(userId)
                 .type(type)
@@ -34,15 +36,15 @@ public class NotificationService {
                 .createdAt(Instant.now())
                 .build();
 
-        notificationRepository.save(notification);
+        notification = notificationRepository.save(notification);
         log.info("Notification created: userId={}, type={}, title={}", userId, type, title);
 
-        // FCM Push — раскомментировать после интеграции Firebase Admin SDK:
-        // fcmService.sendToUser(userId, title, message);
+        // 2. Отправить по WebSocket (если юзер online)
+        NotificationDto.Response response = toResponse(notification);
+        webSocketPublisher.sendNotification(userId, response);
     }
 
-    public org.springframework.data.domain.Page<NotificationDto.Response> getUserNotifications(
-            UUID userId, org.springframework.data.domain.Pageable pageable) {
+    public Page<NotificationDto.Response> getUserNotifications(UUID userId, Pageable pageable) {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
                 .map(this::toResponse);
     }
@@ -63,10 +65,6 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
-    /**
-     * Отмечает все непрочитанные уведомления пользователя как прочитанные.
-     * Использует bulk MongoDB update — один запрос вместо N save().
-     */
     public void markAllAsRead(UUID userId) {
         long updated = notificationRepository.findAndUpdateByUserIdAndReadFalse(userId);
         log.debug("Marked {} notifications as read for userId={}", updated, userId);

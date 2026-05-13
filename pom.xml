@@ -23,7 +23,6 @@
         <module>api-gateway</module>
         <module>user-service</module>
         <module>recording-service</module>
-        <module>mapping-service</module>
         <module>statistics-service</module>
         <module>gamification-service</module>
         <module>notification-service</module>

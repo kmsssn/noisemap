@@ -47,7 +47,7 @@ services:
     image: rabbitmq:3-management-alpine
     ports:
       - "5672:5672"
-      - "15672:15672"   # Management UI: http://localhost:15672 (guest/guest)
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -89,25 +89,11 @@ services:
     environment:
       RABBIT_USER: guest
       RABBIT_PASS: guest
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://host.docker.internal:8000}
     volumes:
       - audio_data:/data/audio
     depends_on:
       mongodb:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-  mapping-service:
-    build: ./mapping-service
-    ports:
-      - "8083:8083"
-    environment:
-      RABBIT_USER: guest
-      RABBIT_PASS: guest
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -149,6 +135,7 @@ services:
     environment:
       RABBIT_USER: guest
       RABBIT_PASS: guest
+      JWT_SECRET: noisemap-dev-secret-key-change-in-production-min-32-chars
     depends_on:
       mongodb:
         condition: service_healthy
@@ -176,25 +163,7 @@ services:
       mongodb:
         condition: service_healthy
 
-  prometheus:
-    image: prom/prometheus:latest
-    ports: ["9090:9090"]
-    volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-
-  grafana:
-    image: grafana/grafana:latest
-    ports: ["3000:3000"]
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./infrastructure/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-    depends_on:
-      - prometheus
-
 volumes:
   postgres_data:
   mongo_data:
   audio_data:
-  grafana_data:

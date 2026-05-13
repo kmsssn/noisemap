@@ -165,32 +165,11 @@ services:
     environment:
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASS: ${RABBIT_PASS}
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://host.docker.internal:8000}
     volumes:
       - audio_data:/data/audio
     depends_on:
       mongodb:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - noisemap-net
-
-  mapping-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE_NAME: mapping-service
-    restart: unless-stopped
-    expose:
-      - "8083"
-    environment:
-      RABBIT_USER: ${RABBIT_USER}
-      RABBIT_PASS: ${RABBIT_PASS}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -253,6 +232,8 @@ services:
     environment:
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASS: ${RABBIT_PASS}
+      JWT_SECRET: ${JWT_SECRET}
+      MODERATOR_IDS: ${MODERATOR_IDS:-}
     depends_on:
       mongodb:
         condition: service_healthy

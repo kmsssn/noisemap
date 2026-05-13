@@ -9,10 +9,6 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Публикуется ML Classification Service после обработки.
- * Потребители: Mapping, Statistics, Gamification, Notification
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -22,9 +18,9 @@ public class ClassificationCompletedEvent implements Serializable {
     private UUID userId;
     private Double latitude;
     private Double longitude;
-    private Double noiseLevelDba;        // уровень шума в дБА (с учётом калибровки)
-    private String noiseClass;           // "traffic", "construction", "voices", "siren", "music", "nature", "industrial", "other"
-    private Double confidenceScore;      // 0.0 - 1.0
+    private Double noiseLevelDba;
+    private String noiseClass;           // transport, human, alert, building_noise, animals, others
+    private Double confidenceScore;
     private Instant recordedAt;
     private Instant classifiedAt;
 }
