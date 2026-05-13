@@ -14,8 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Slf4j
@@ -26,46 +26,37 @@ public class ModerationService {
     private final ModerationRepository moderationRepository;
     private final RabbitTemplate rabbitTemplate;
 
-    // Пороги для автоматического флагирования
-    private static final int MAX_RECORDINGS_PER_MINUTE = 5;
-    private static final double MIN_VALID_DBA = 10.0;
-    private static final double MAX_VALID_DBA = 140.0;
-    private static final double MIN_VALID_LAT = 40.0;  // Примерные границы Алматы
+    private static final double MIN_VALID_LAT = 40.0;
     private static final double MAX_VALID_LAT = 44.0;
     private static final double MIN_VALID_LNG = 76.0;
     private static final double MAX_VALID_LNG = 78.0;
 
-    /**
-     * Автоматическая проверка новой записи при поступлении recording.created.
-     */
-    public void checkRecording(RecordingCreatedEvent event) {
-        String reason = null;
-        String details = null;
+    private static final int SPAM_FLAG_THRESHOLD = 5;
+    private static final int SPAM_WINDOW_HOURS = 1;
 
-        // Проверка координат — в пределах Алматы
+
+    public void checkRecording(RecordingCreatedEvent event) {
         if (event.getLatitude() < MIN_VALID_LAT || event.getLatitude() > MAX_VALID_LAT
                 || event.getLongitude() < MIN_VALID_LNG || event.getLongitude() > MAX_VALID_LNG) {
-            reason = "out_of_bounds";
-            details = String.format("Coordinates [%.4f, %.4f] outside Almaty area",
+            String details = String.format("Coordinates [%.4f, %.4f] outside Almaty area",
                     event.getLatitude(), event.getLongitude());
+            flagRecording(event.getRecordingId(), event.getUserId(), "out_of_bounds", details);
+            return;
         }
 
-        // Проверка частоты записей — антиспам
-        long recentCount = moderationRepository.countByUserId(event.getUserId());
-        // Упрощённая проверка: если у пользователя слишком много флагов — подозрительный
-        if (recentCount > 10) {
-            reason = "spam_pattern";
-            details = "User has " + recentCount + " flagged records";
-        }
 
-        if (reason != null) {
-            flagRecording(event.getRecordingId(), event.getUserId(), reason, details);
+        Instant windowStart = Instant.now().minus(SPAM_WINDOW_HOURS, ChronoUnit.HOURS);
+        long recentFlags = moderationRepository.countByUserIdAndFlaggedAtAfter(
+                event.getUserId(), windowStart);
+
+        if (recentFlags >= SPAM_FLAG_THRESHOLD) {
+            String details = String.format(
+                    "User has %d flagged records in the last %d hour(s)", recentFlags, SPAM_WINDOW_HOURS);
+            flagRecording(event.getRecordingId(), event.getUserId(), "spam_pattern", details);
         }
     }
 
-    /**
-     * Пометить запись как подозрительную.
-     */
+
     public void flagRecording(String recordingId, UUID userId, String reason, String details) {
         ModerationRecord record = ModerationRecord.builder()
                 .recordingId(recordingId)
@@ -78,7 +69,6 @@ public class ModerationService {
 
         moderationRepository.save(record);
 
-        // Публикуем событие → Notification Service
         RecordingFlaggedEvent event = RecordingFlaggedEvent.builder()
                 .recordingId(recordingId)
                 .userId(userId)
@@ -96,41 +86,35 @@ public class ModerationService {
         log.info("Recording {} flagged: reason={}", recordingId, reason);
     }
 
-    /**
-     * Очередь на модерацию — для модераторов.
-     */
     public Page<ModerationDto.QueueItem> getPendingQueue(Pageable pageable) {
         return moderationRepository.findByStatus(ModerationStatus.PENDING, pageable)
                 .map(this::toQueueItem);
     }
 
-    /**
-     * Модератор принимает решение по записи.
-     */
-    public void reviewRecord(String recordId, UUID moderatorId, ModerationDto.ReviewRequest request) {
-        ModerationRecord record = moderationRepository.findById(recordId)
-                .orElseThrow(() -> new IllegalArgumentException("Record not found: " + recordId));
+    public void reviewRecord(String id, UUID reviewerId, ModerationDto.ReviewRequest request) {
+        ModerationRecord record = moderationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Moderation record not found: " + id));
 
-        if ("approve".equalsIgnoreCase(request.getDecision())) {
-            record.setStatus(ModerationStatus.APPROVED);
-        } else if ("reject".equalsIgnoreCase(request.getDecision())) {
-            record.setStatus(ModerationStatus.REJECTED);
-        } else {
-            throw new IllegalArgumentException("Invalid decision: " + request.getDecision());
+        if (!"approve".equals(request.getDecision()) && !"reject".equals(request.getDecision())) {
+            throw new IllegalArgumentException("Decision must be 'approve' or 'reject'");
         }
 
-        record.setReviewedBy(moderatorId);
+        record.setStatus("approve".equals(request.getDecision())
+                ? ModerationStatus.APPROVED
+                : ModerationStatus.REJECTED);
+        record.setReviewedBy(reviewerId);
         record.setReviewComment(request.getComment());
         record.setReviewedAt(Instant.now());
 
         moderationRepository.save(record);
-        log.info("Moderation review: recordId={}, decision={}, moderator={}",
-                recordId, request.getDecision(), moderatorId);
+        log.info("Recording {} moderation decision: {} by {}", id, request.getDecision(), reviewerId);
     }
 
     public ModerationDto.QueueStats getQueueStats() {
         return ModerationDto.QueueStats.builder()
                 .pending(moderationRepository.countByStatus(ModerationStatus.PENDING))
+                .approvedToday(moderationRepository.countByStatus(ModerationStatus.APPROVED))
+                .rejectedToday(moderationRepository.countByStatus(ModerationStatus.REJECTED))
                 .build();
     }
 

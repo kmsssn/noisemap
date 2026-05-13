@@ -1,6 +1,6 @@
 # Moderation Service
 
-Контроль качества данных. Автоматически проверяет записи на аномалии, ведёт очередь для ручной модерации. Хранит в MongoDB.
+Контроль качества данных. Автоматически проверяет записи на аномалии при поступлении, ведёт очередь для ручной модерации. Хранит в MongoDB.
 
 ## API
 
@@ -9,6 +9,8 @@
 ### GET /api/v1/moderation/queue
 
 Очередь записей на проверку с пагинацией.
+
+Параметры: `page=0`, `size=20`
 
 Ответ (200):
 ```json
@@ -41,7 +43,7 @@
 }
 ```
 
-Допустимые значения decision: `approve`, `reject`.
+Допустимые значения `decision`: `approve`, `reject`.
 
 ### GET /api/v1/moderation/stats
 
@@ -60,10 +62,10 @@
 
 При каждом `recording.created` проверяется:
 
-1. **Координаты** — широта должна быть 40-44, долгота 76-78 (Алматы). Иначе → `out_of_bounds`
-2. **Спам-паттерн** — если у пользователя больше 10 флагов → `spam_pattern`
+1. **Координаты Алматы** — широта 40-44, долгота 76-78. Иначе → `out_of_bounds`
+2. **Spam pattern** — больше 5 флагов **за последний час** → `spam_pattern` (исправлено — раньше считалось за всё время)
 
-При срабатывании создаётся запись в очереди модерации и публикуется событие `recording.flagged` → notification-service уведомляет модераторов.
+При срабатывании создаётся запись в очереди модерации и публикуется событие `recording.flagged` → notification-service уведомляет юзера И всех модераторов (через `app.moderation.moderator-ids`).
 
 ## Статусы
 
@@ -75,14 +77,34 @@
 
 Коллекция `moderation_queue` в MongoDB:
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| recordingId | String | |
-| userId | UUID | |
-| reason | String | out_of_bounds, spam_pattern |
-| details | String | подробности |
-| status | String | PENDING, APPROVED, REJECTED |
-| reviewedBy | UUID | модератор |
-| reviewComment | String | |
-| flaggedAt | Instant | |
-| reviewedAt | Instant | |
+| Поле | Тип |
+|------|-----|
+| id | String |
+| recordingId | String |
+| userId | UUID |
+| reason | String — out_of_bounds, spam_pattern |
+| details | String |
+| status | String — PENDING, APPROVED, REJECTED |
+| reviewedBy | UUID |
+| reviewComment | String |
+| flaggedAt | Instant |
+| reviewedAt | Instant |
+
+Индекс на `userId + flaggedAt` для эффективного `countByUserIdAndFlaggedAtAfter` (используется для spam detection).
+
+## События RabbitMQ
+
+### Слушает: `moderation.check.queue` ← `recording.created`
+
+Запускает автоматическую проверку.
+
+### Публикует: `recording.flagged`
+
+В `notification.moderator.queue` → notification-service отправляет уведомления.
+
+## Локальный запуск
+
+```bash
+mvn spring-boot:run -pl moderation-service -Dspring-boot.run.profiles=local
+open http://localhost:8087/swagger-ui.html
+```

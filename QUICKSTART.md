@@ -29,7 +29,6 @@ docker compose ps
 
 - User Service: http://localhost:8081/swagger-ui.html
 - Recording Service: http://localhost:8082/swagger-ui.html
-- Mapping Service: http://localhost:8083/swagger-ui.html
 - Statistics Service: http://localhost:8084/swagger-ui.html
 - Gamification Service: http://localhost:8085/swagger-ui.html
 - Notification Service: http://localhost:8086/swagger-ui.html

@@ -7,7 +7,6 @@
 #COPY api-gateway/pom.xml api-gateway/
 #COPY user-service/pom.xml user-service/
 #COPY recording-service/pom.xml recording-service/
-#COPY mapping-service/pom.xml mapping-service/
 #COPY statistics-service/pom.xml statistics-service/
 #COPY gamification-service/pom.xml gamification-service/
 #COPY notification-service/pom.xml notification-service/

@@ -38,11 +38,6 @@ public class User {
     @Builder.Default
     private String language = "ru"; // kz, ru, en
 
-    private String deviceModel;
-
-    @Builder.Default
-    private Double calibrationOffset = 0.0; // дБ поправка для устройства
-
     @Builder.Default
     private Boolean active = true;
 

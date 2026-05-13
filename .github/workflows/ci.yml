@@ -15,7 +15,6 @@ jobs:
       api-gateway: ${{ steps.changes.outputs.api-gateway }}
       user-service: ${{ steps.changes.outputs.user-service }}
       recording-service: ${{ steps.changes.outputs.recording-service }}
-      mapping-service: ${{ steps.changes.outputs.mapping-service }}
       statistics-service: ${{ steps.changes.outputs.statistics-service }}
       gamification-service: ${{ steps.changes.outputs.gamification-service }}
       notification-service: ${{ steps.changes.outputs.notification-service }}
@@ -38,9 +37,6 @@ jobs:
               - 'common-lib/**'
             recording-service:
               - 'recording-service/**'
-              - 'common-lib/**'
-            mapping-service:
-              - 'mapping-service/**'
               - 'common-lib/**'
             statistics-service:
               - 'statistics-service/**'
@@ -82,10 +78,6 @@ jobs:
       - name: Build recording-service
         if: needs.detect-changes.outputs.recording-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
         run: mvn clean package -pl recording-service -am -DskipTests
-
-      - name: Build mapping-service
-        if: needs.detect-changes.outputs.mapping-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
-        run: mvn clean package -pl mapping-service -am -DskipTests
 
       - name: Build statistics-service
         if: needs.detect-changes.outputs.statistics-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'

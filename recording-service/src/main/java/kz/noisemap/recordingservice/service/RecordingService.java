@@ -2,6 +2,7 @@ package kz.noisemap.recordingservice.service;
 
 import kz.noisemap.common.event.RabbitConstants;
 import kz.noisemap.common.event.RecordingCreatedEvent;
+import kz.noisemap.recordingservice.client.DeviceCalibrationClient;
 import kz.noisemap.recordingservice.dto.RecordingDto;
 import kz.noisemap.recordingservice.model.Recording;
 import kz.noisemap.recordingservice.model.RecordingStatus;
@@ -26,10 +27,15 @@ public class RecordingService {
     private final RecordingRepository recordingRepository;
     private final FileStorageService fileStorageService;
     private final RabbitTemplate rabbitTemplate;
+    private final DeviceCalibrationClient deviceCalibrationClient;
 
     /**
      * Основной метод: принимает аудио, сохраняет, публикует событие.
      * Клиент получает 202 Accepted и не ждёт ML обработки.
+     *
+     * Калибровочный offset подтягивается из user-service device calibration registry
+     * на этапе публикации события — чтобы потребители (ML, statistics, mapping)
+     * получили готовый offset для коррекции dBA.
      */
     public RecordingDto.Response uploadRecording(
             UUID userId,
@@ -42,7 +48,7 @@ public class RecordingService {
         // 2. Сохранение файла
         String fileUrl = fileStorageService.store(audioFile, userId);
 
-        // 3. Сохранение метаданных в MongoDB
+        // 3. Сохранение метаданных в MongoDB (offset подтянем перед публикацией события)
         Recording recording = Recording.builder()
                 .userId(userId)
                 .audioFileUrl(fileUrl)
@@ -55,10 +61,13 @@ public class RecordingService {
         recording = recordingRepository.save(recording);
 
         // 4. Публикация события в RabbitMQ → ML, Moderation, Gamification
+        //    Внутри подтягивается offset из справочника и записывается в recording
         publishRecordingCreated(recording);
 
-        log.info("Recording uploaded: id={}, userId={}, location=[{}, {}]",
-                recording.getId(), userId, request.getLatitude(), request.getLongitude());
+        log.info("Recording uploaded: id={}, userId={}, location=[{}, {}], device={}, offset={} dB",
+                recording.getId(), userId,
+                request.getLatitude(), request.getLongitude(),
+                recording.getDeviceModel(), recording.getCalibrationOffset());
 
         return toResponse(recording);
     }
@@ -83,7 +92,7 @@ public class RecordingService {
      * Обновляет запись результатами ML классификации.
      */
     public void updateClassification(String recordingId, Double noiseLevelDba,
-                                      String noiseClass, Double confidenceScore) {
+                                     String noiseClass, Double confidenceScore) {
         Recording recording = recordingRepository.findById(recordingId)
                 .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
 
@@ -97,7 +106,27 @@ public class RecordingService {
                 recordingId, noiseClass, noiseLevelDba);
     }
 
+    /**
+     * Публикует recording.created событие.
+     *
+     * Перед публикацией:
+     *  1. Подтягивает offset калибровки из user-service по deviceModel
+     *  2. Сохраняет offset в Recording (чтобы был в БД для аудита)
+     *  3. Кладёт offset в событие → потребители (ML, statistics, mapping)
+     *     могут применить коррекцию
+     *
+     * Fail-safe: если user-service недоступен, DeviceCalibrationClient вернёт 0.0
+     * и запись обрабатывается без коррекции — лучше неточные данные чем падение.
+     */
     private void publishRecordingCreated(Recording recording) {
+        // 1. Подтянуть калибровку из user-service
+        Double offset = deviceCalibrationClient.getCalibrationOffset(recording.getDeviceModel());
+
+        // 2. Обновить Recording в БД с правильным offset
+        recording.setCalibrationOffset(offset);
+        recordingRepository.save(recording);
+
+        // 3. Опубликовать событие с уже корректным offset
         RecordingCreatedEvent event = RecordingCreatedEvent.builder()
                 .recordingId(recording.getId())
                 .userId(recording.getUserId())
@@ -105,7 +134,7 @@ public class RecordingService {
                 .latitude(recording.getLocation()[1])  // location = [lng, lat]
                 .longitude(recording.getLocation()[0])
                 .deviceModel(recording.getDeviceModel())
-                .calibrationOffset(recording.getCalibrationOffset())
+                .calibrationOffset(offset)
                 .recordedAt(recording.getRecordedAt())
                 .publishedAt(Instant.now())
                 .build();
@@ -116,7 +145,8 @@ public class RecordingService {
                 event
         );
 
-        log.debug("Published recording.created event for recording: {}", recording.getId());
+        log.debug("Published recording.created event for recording: {} (offset={} dB)",
+                recording.getId(), offset);
     }
 
     private void validateAudioFile(MultipartFile file) {
@@ -135,6 +165,10 @@ public class RecordingService {
         }
     }
 
+    /**
+     * Преобразование Recording → Response DTO.
+     * Соответствует актуальной структуре RecordingDto.Response в проекте.
+     */
     private RecordingDto.Response toResponse(Recording recording) {
         return RecordingDto.Response.builder()
                 .id(recording.getId())

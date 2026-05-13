@@ -16,7 +16,6 @@ public class AuthDto {
     public static final String PASSWORD_MESSAGE =
             "Пароль должен быть от 8 до 100 символов и содержать минимум: 1 заглавную букву, 1 цифру, 1 спецсимвол";
 
-
     public static final String DISPLAY_NAME_PATTERN = "^[\\p{L}\\p{N} ._-]+$";
     public static final String DISPLAY_NAME_MESSAGE =
             "Имя может содержать только буквы, цифры, пробелы, точки, дефисы и подчёркивания";
@@ -38,7 +37,6 @@ public class AuthDto {
         private String displayName;
 
         private String language;
-        private String deviceModel;
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
@@ -77,7 +75,6 @@ public class AuthDto {
         private String newPassword;
     }
 
-
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class ChangeEmailRequest {
         @NotBlank @Email
@@ -87,7 +84,6 @@ public class AuthDto {
         @NotBlank(message = "Подтвердите паролем")
         private String currentPassword;
     }
-
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class ChangePasswordRequest {

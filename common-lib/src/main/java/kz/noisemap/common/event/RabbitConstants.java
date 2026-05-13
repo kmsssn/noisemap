@@ -1,9 +1,5 @@
 package kz.noisemap.common.event;
 
-/**
- * Константы для RabbitMQ: exchange, routing keys, queues.
- * Используются всеми сервисами для единообразия.
- */
 public final class RabbitConstants {
 
     private RabbitConstants() {}
@@ -22,7 +18,6 @@ public final class RabbitConstants {
     public static final String Q_MODERATION_CHECK = "moderation.check.queue";
     public static final String Q_GAMIFICATION_RECORDING = "gamification.recording.queue";
     public static final String Q_GAMIFICATION_ACHIEVEMENT = "gamification.achievement.queue";
-    public static final String Q_MAPPING_UPDATE = "mapping.update.queue";
     public static final String Q_STATISTICS_UPDATE = "statistics.update.queue";
     public static final String Q_NOTIFICATION_ACHIEVEMENT = "notification.achievement.queue";
     public static final String Q_NOTIFICATION_MODERATOR = "notification.moderator.queue";

@@ -1,12 +1,12 @@
 # Statistics Service
 
-Аналитика шумового загрязнения — общая статистика по городу и персональная для каждого пользователя. Хранит данные в MongoDB, кэширует в Redis.
+Аналитика шумового загрязнения — общая статистика по городу и персональная для каждого пользователя. Слушает `classification.completed` события из RabbitMQ, агрегирует, кэширует в Redis.
 
 ## API
 
 ### GET /api/v1/stats/city
 
-Общая статистика по городу. Публичный endpoint.
+Общая статистика по городу. **Публичный endpoint**.
 
 Ответ (200):
 ```json
@@ -17,13 +17,12 @@
   "totalMeasurements": 1250,
   "totalContributors": 47,
   "measurementsByNoiseClass": {
-    "traffic": 580,
-    "construction": 210,
-    "voices": 190,
-    "music": 120,
-    "nature": 85,
-    "siren": 40,
-    "industrial": 25
+    "transport": 580,
+    "human": 210,
+    "building_noise": 190,
+    "alert": 40,
+    "animals": 85,
+    "others": 25
   },
   "hourlyAverages": [
     {"hour": 0, "avgDba": 42.1, "measurementCount": 30},
@@ -44,11 +43,10 @@
   "avgExposureDba": 67.8,
   "maxExposureDba": 85.2,
   "recordingsByNoiseClass": {
-    "traffic": 12,
-    "voices": 6,
-    "construction": 5
+    "transport": 12,
+    "human": 6,
+    "building_noise": 5
   },
-  "personalHourlyAverages": null,
   "recommendation": "Повышенный уровень шума. Длительное воздействие может влиять на здоровье."
 }
 ```
@@ -59,21 +57,41 @@
 - 70-85 дБА — повышенный, может влиять на здоровье
 - > 85 дБА — опасный, нужна защита слуха
 
+## Классы шума
+
+Используются классы от ML-сервиса напрямую (pass-through):
+`transport, human, alert, building_noise, animals, others`
+
+## Как работает
+
+Слушает `statistics.update.queue` → `ClassificationCompletedEvent`. Каждое событие:
+1. Сохраняет одно измерение в `noise_measurements`
+2. Инвалидирует кэш городской статистики в Redis
+
+Городская статистика считается on-demand при первом запросе и кэшируется на 10 минут.
+
 ## Модель данных
 
 Коллекция `noise_measurements` в MongoDB:
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| recordingId | String | |
+| recordingId | String | связь с recording |
 | userId | UUID | |
 | latitude, longitude | Double | |
-| noiseLevelDba | Double | |
-| noiseClass | String | |
-| confidenceScore | Double | |
+| noiseLevelDba | Double | с учётом калибровки |
+| noiseClass | String | transport, human, ... |
+| confidenceScore | Double | 0..1 |
 | recordedAt | Instant | |
-| hourOfDay | Integer | 0-23, для агрегации |
+| hourOfDay | Integer | 0-23 |
 | dayOfWeek | Integer | 1-7 |
 | month | Integer | 1-12 |
 
-Кэш городской статистики в Redis — TTL 10 минут.
+Индексы: `userId`, `recordedAt`, `noiseClass`.
+
+## Локальный запуск
+
+```bash
+mvn spring-boot:run -pl statistics-service -Dspring-boot.run.profiles=local
+open http://localhost:8084/swagger-ui.html
+```

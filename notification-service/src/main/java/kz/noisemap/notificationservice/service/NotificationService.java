@@ -4,6 +4,7 @@ import kz.noisemap.notificationservice.dto.NotificationDto;
 import kz.noisemap.notificationservice.model.Notification;
 import kz.noisemap.notificationservice.model.NotificationType;
 import kz.noisemap.notificationservice.repository.NotificationRepository;
+import kz.noisemap.notificationservice.websocket.WebSocketNotificationPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,8 +20,13 @@ import java.util.UUID;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final WebSocketNotificationPublisher webSocketPublisher;
 
+    /**
+     * Создать уведомление в MongoDB и отправить по WebSocket в реальном времени.
+     */
     public void createNotification(UUID userId, NotificationType type, String title, String message) {
+        // 1. Сохранить в MongoDB
         Notification notification = Notification.builder()
                 .userId(userId)
                 .type(type)
@@ -30,10 +36,12 @@ public class NotificationService {
                 .createdAt(Instant.now())
                 .build();
 
-        notificationRepository.save(notification);
+        notification = notificationRepository.save(notification);
         log.info("Notification created: userId={}, type={}, title={}", userId, type, title);
 
-        // TODO: интеграция с Firebase Cloud Messaging для push-уведомлений
+        // 2. Отправить по WebSocket (если юзер online)
+        NotificationDto.Response response = toResponse(notification);
+        webSocketPublisher.sendNotification(userId, response);
     }
 
     public Page<NotificationDto.Response> getUserNotifications(UUID userId, Pageable pageable) {
@@ -58,15 +66,8 @@ public class NotificationService {
     }
 
     public void markAllAsRead(UUID userId) {
-        Page<Notification> unread = notificationRepository
-                .findByUserIdOrderByCreatedAtDesc(userId, Pageable.unpaged());
-
-        unread.getContent().stream()
-                .filter(n -> !n.getRead())
-                .forEach(n -> {
-                    n.setRead(true);
-                    notificationRepository.save(n);
-                });
+        long updated = notificationRepository.findAndUpdateByUserIdAndReadFalse(userId);
+        log.debug("Marked {} notifications as read for userId={}", updated, userId);
     }
 
     private NotificationDto.Response toResponse(Notification notification) {

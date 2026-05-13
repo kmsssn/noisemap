@@ -42,7 +42,6 @@ public class AuthService {
                 .displayName(request.getDisplayName().trim())
                 .role(Role.USER)
                 .language(request.getLanguage() != null ? request.getLanguage() : "ru")
-                .deviceModel(request.getDeviceModel())
                 .build();
 
         user = userRepository.save(user);
@@ -56,7 +55,6 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
-        // Неверный пароль → 401, не 500
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new UnauthorizedException("Invalid email or password");
         }
@@ -76,7 +74,6 @@ public class AuthService {
         userRepository.findByEmail(normalizedEmail).ifPresent(user -> {
             String resetToken = jwtService.generatePasswordResetToken(user);
 
-            // Асинхронная отправка письма — не блокирует HTTP запрос
             emailService.sendPasswordResetEmail(
                     user.getEmail(),
                     user.getDisplayName(),
@@ -85,7 +82,6 @@ public class AuthService {
 
             log.info("Password reset requested for: {}", normalizedEmail);
         });
-
 
         return AuthDto.ResetPasswordResponse.builder()
                 .message("If the email exists, a password reset link has been sent")
@@ -108,7 +104,6 @@ public class AuthService {
         userRepository.save(user);
         log.info("Password reset for user: {}", user.getEmail());
     }
-
 
     @Transactional
     public void changePassword(UUID userId, AuthDto.ChangePasswordRequest request) {

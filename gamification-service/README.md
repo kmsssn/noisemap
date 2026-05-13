@@ -1,35 +1,39 @@
 # Gamification Service
 
-Система мотивации пользователей — очки за записи, ачивки, уровни, лидерборд. Хранит данные в PostgreSQL.
+Геймификация — очки, ачивки, лидерборд. Мотивирует пользователей делать больше записей. Хранит в PostgreSQL (через Flyway миграции), кэширует ачивки в Caffeine.
 
 ## API
 
 ### GET /api/v1/gamification/me
 
-Профиль геймификации. Требует `X-User-Id`.
+Прогресс текущего пользователя. Требует `X-User-Id`.
 
 Ответ (200):
 ```json
 {
   "userId": "99c03677-9069-41fe-9b25-2a75de3d3dca",
-  "totalPoints": 185,
-  "totalRecordings": 8,
-  "level": 2,
-  "currentStreak": 3,
+  "totalPoints": 245,
+  "level": 3,
+  "totalRecordings": 23,
   "achievements": [
     {
-      "code": "first_recording",
+      "code": "FIRST_RECORDING",
       "title": "Первый шаг",
-      "description": "Сделайте первую запись",
-      "pointsAwarded": 10,
-      "unlockedAt": "2026-04-08T17:38:00Z"
-    },
+      "description": "Сделать первую запись",
+      "icon": "🎤",
+      "points": 10,
+      "unlockedAt": "2026-04-08T17:38:05Z"
+    }
+  ],
+  "nextAchievements": [
     {
-      "code": "night_owl",
-      "title": "Ночной дозор",
-      "description": "Сделайте запись между 23:00 и 5:00",
-      "pointsAwarded": 75,
-      "unlockedAt": "2026-04-09T01:15:00Z"
+      "code": "TEN_RECORDINGS",
+      "title": "Активист",
+      "description": "Сделать 10 записей",
+      "icon": "🏆",
+      "points": 50,
+      "progress": 23,
+      "target": 10
     }
   ]
 }
@@ -37,84 +41,100 @@
 
 ### GET /api/v1/gamification/leaderboard
 
-Лидерборд. Параметр `limit` (по умолчанию 20).
+Лидерборд. **Публичный endpoint**. Запрашивает displayName из user-service.
+
+Параметр: `limit=20` (по умолчанию)
 
 Ответ (200):
 ```json
-[
-  {
-    "rank": 1,
-    "userId": "99c03677-9069-41fe-9b25-2a75de3d3dca",
-    "totalPoints": 2350,
-    "totalRecordings": 156,
-    "level": 24
-  },
-  {
-    "rank": 2,
-    "userId": "a1b2c3d4-...",
-    "totalPoints": 1820,
-    "totalRecordings": 98,
-    "level": 19
-  }
-]
+{
+  "leaderboard": [
+    {
+      "rank": 1,
+      "userId": "...",
+      "displayName": "Амина",
+      "totalPoints": 850,
+      "totalRecordings": 75,
+      "level": 7
+    }
+  ]
+}
 ```
 
-## Начисление очков
+### GET /api/v1/gamification/achievements
 
-- Каждая запись: +10 очков
-- Бонусы за ачивки (от 10 до 2000 очков)
-- Уровень = totalPoints / 100 + 1
+Каталог всех доступных ачивок.
 
 ## Ачивки
 
+Список ачивок хранится в `achievements_catalog` (Flyway миграция `V1__achievements.sql`):
+
 | Код | Название | Условие | Очки |
 |-----|----------|---------|------|
-| first_recording | Первый шаг | 1 запись | 10 |
-| recordings_10 | Активист | 10 записей | 50 |
-| recordings_50 | Исследователь | 50 записей | 200 |
-| recordings_100 | Эксперт | 100 записей | 500 |
-| recordings_500 | Легенда | 500 записей | 2000 |
-| quiet_finder | Тишина и покой | запись < 40 дБА | 100 |
-| loud_discoverer | Горячая точка | запись > 85 дБА | 50 |
-| night_owl | Ночной дозор | запись 23:00-5:00 | 75 |
-| early_bird | Ранняя пташка | запись 5:00-7:00 | 75 |
-| streak_7 | Неделя подряд | 7 дней стрик | 150 |
-| streak_30 | Месяц подряд | 30 дней стрик | 500 |
+| FIRST_RECORDING | Первый шаг | 1 запись | 10 |
+| FIVE_RECORDINGS | Энтузиаст | 5 записей | 25 |
+| TEN_RECORDINGS | Активист | 10 записей | 50 |
+| FIFTY_RECORDINGS | Профи | 50 записей | 250 |
+| HUNDRED_RECORDINGS | Эксперт | 100 записей | 500 |
+| MORNING_BIRD | Жаворонок | Запись до 8:00 | 15 |
+| NIGHT_OWL | Сова | Запись после 22:00 | 15 |
+| WEEKEND_WARRIOR | Воин выходных | Запись в выходной | 10 |
 
-## Стрик
+## Уровни
 
-Считается по дням. Если пользователь записал звук сегодня и вчера — стрик продолжается. Пропустил день — сбрасывается на 1. Часовой пояс: Asia/Almaty.
+Уровень = `floor(totalPoints / 100) + 1`. Без ограничений.
 
-## События RabbitMQ
+## Как работает
 
-Слушает:
-- `gamification.recording.queue` (recording.created) — начислить очки, проверить ачивки по количеству и времени
-- `gamification.achievement.queue` (classification.completed) — проверить ачивки по дБА
+Слушает 2 очереди:
 
-Публикует:
-- `achievement.unlocked` → notification-service
+**`gamification.recording.queue`** ← `recording.created`
+1. Инкрементирует `totalRecordings` пользователя
+2. Проверяет ачивки за количество записей (FIRST_RECORDING, FIVE_RECORDINGS, ...)
+3. Проверяет ачивки за время суток (MORNING_BIRD, NIGHT_OWL)
+4. Если ачивка разблокирована — публикует `achievement.unlocked`
+
+**`gamification.achievement.queue`** ← `classification.completed`
+- (placeholder) — можно добавить ачивки за классификацию (например `TRAFFIC_HUNTER` — 10 traffic записей)
+
+## Кэш
+
+Каталог ачивок кэшируется в Caffeine на 1 час (`@Cacheable`). Лидерборд НЕ кэшируется (запрашивается напрямую, всегда актуальный).
 
 ## Модель данных
 
-Таблица `user_scores` в PostgreSQL:
+PostgreSQL таблицы:
 
+**`user_progress`:**
 | Поле | Тип | Описание |
 |------|-----|----------|
 | user_id | UUID | PK |
-| total_points | INTEGER | |
-| total_recordings | INTEGER | |
-| level | INTEGER | |
-| current_streak | INTEGER | |
-| last_recording_date | TIMESTAMP | |
+| total_points | INT | |
+| total_recordings | INT | |
+| level | INT | вычисляется |
+| created_at, updated_at | TIMESTAMP | |
 
-Таблица `user_achievements`:
+**`achievements_catalog`:**
+| Поле | Тип |
+|------|-----|
+| code | VARCHAR (PK) |
+| title | VARCHAR |
+| description | VARCHAR |
+| icon | VARCHAR (emoji) |
+| points | INT |
+| condition_type | VARCHAR (RECORDINGS_COUNT, TIME_OF_DAY, ...) |
+| condition_value | VARCHAR (JSON) |
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| id | UUID | PK |
-| user_id | UUID | |
-| achievement_code | VARCHAR | уникально вместе с user_id |
-| achievement_title | VARCHAR | |
-| description | VARCHAR | |
-| points_awarded | INTEGER | |
-| unlocked_at | TIMESTAMP | |
+**`user_achievements`:**
+| Поле | Тип |
+|------|-----|
+| user_id | UUID |
+| achievement_code | VARCHAR |
+| unlocked_at | TIMESTAMP |
+
+## Локальный запуск
+
+```bash
+mvn spring-boot:run -pl gamification-service -Dspring-boot.run.profiles=local
+open http://localhost:8085/swagger-ui.html
+```

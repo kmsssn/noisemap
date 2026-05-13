@@ -22,6 +22,17 @@ storage:
   audio:
     path: /data/audio
 
+services:
+  user-service:
+    url: http://user-service:8081
+  ml-service:
+    url: ${ML_SERVICE_URL:http://ml-service:8000}
+    timeout-seconds: 30
+
+app:
+  ml:
+    default-dba-placeholder: 55.0
+
 springdoc:
   api-docs:
     path: /v3/api-docs
