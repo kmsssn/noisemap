@@ -31,9 +31,6 @@ public class StatisticsService {
 
     private static final Duration CACHE_TTL = Duration.ofMinutes(10);
 
-    /**
-     * Сохранить результат классификации для аналитики.
-     */
     public void saveMeasurement(ClassificationCompletedEvent event) {
         ZonedDateTime zdt = event.getRecordedAt().atZone(ZoneId.of("Asia/Almaty"));
 
@@ -53,14 +50,9 @@ public class StatisticsService {
                 .build();
 
         measurementRepository.save(measurement);
-
-        // Инвалидировать кэш статистики
         redisTemplate.delete("stats:city");
     }
 
-    /**
-     * Общая статистика по городу.
-     */
     public StatsDto.CityStatsResponse getCityStats() {
         @SuppressWarnings("unchecked")
         StatsDto.CityStatsResponse cached =
@@ -91,7 +83,6 @@ public class StatisticsService {
                 .distinct()
                 .count();
 
-        // Почасовые средние
         List<StatsDto.HourlyAverage> hourly = all.stream()
                 .filter(m -> m.getHourOfDay() != null && m.getNoiseLevelDba() != null)
                 .collect(Collectors.groupingBy(NoiseMeasurement::getHourOfDay))
@@ -120,9 +111,6 @@ public class StatisticsService {
         return response;
     }
 
-    /**
-     * Персональная статистика пользователя.
-     */
     public StatsDto.UserStatsResponse getUserStats(UUID userId) {
         List<NoiseMeasurement> userMeasurements = measurementRepository.findByUserId(userId);
 
@@ -130,7 +118,7 @@ public class StatisticsService {
             return StatsDto.UserStatsResponse.builder()
                     .totalRecordings(0L)
                     .avgExposureDba(0.0)
-                    .recommendation("Сделайте первую запись, чтобы увидеть статистику!")
+                    .recommendationKey("noData")   // ← было: захардкоженная русская строка
                     .build();
         }
 
@@ -143,26 +131,19 @@ public class StatisticsService {
                 .filter(m -> m.getNoiseClass() != null)
                 .collect(Collectors.groupingBy(NoiseMeasurement::getNoiseClass, Collectors.counting()));
 
-        String recommendation = generateRecommendation(dbaStats.getAverage());
-
         return StatsDto.UserStatsResponse.builder()
                 .totalRecordings((long) userMeasurements.size())
                 .avgExposureDba(dbaStats.getAverage())
                 .maxExposureDba(dbaStats.getMax())
                 .recordingsByNoiseClass(byClass)
-                .recommendation(recommendation)
+                .recommendationKey(generateRecommendationKey(dbaStats.getAverage()))  // ← было: recommendation(...)
                 .build();
     }
 
-    private String generateRecommendation(double avgDba) {
-        if (avgDba < 55) {
-            return "Ваше окружение в пределах нормы ВОЗ. Отличная акустическая обстановка!";
-        } else if (avgDba < 70) {
-            return "Умеренный уровень шума. Рекомендуется делать перерывы в тихих местах.";
-        } else if (avgDba < 85) {
-            return "Повышенный уровень шума. Длительное воздействие может влиять на здоровье.";
-        } else {
-            return "Опасный уровень шума! Рекомендуется использовать средства защиты слуха.";
-        }
+    private String generateRecommendationKey(double avgDba) {
+        if (avgDba < 55)      return "goodLevel";
+        else if (avgDba < 70) return "moderateLevel";
+        else if (avgDba < 85) return "highLevel";
+        else                  return "dangerousLevel";
     }
 }

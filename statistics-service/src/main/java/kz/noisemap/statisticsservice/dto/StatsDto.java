@@ -36,7 +36,7 @@ public class StatsDto {
         private Double maxExposureDba;
         private Map<String, Long> recordingsByNoiseClass;
         private List<HourlyAverage> personalHourlyAverages;
-        private String recommendation;
+        private String recommendationKey;
     }
 
     @Data
