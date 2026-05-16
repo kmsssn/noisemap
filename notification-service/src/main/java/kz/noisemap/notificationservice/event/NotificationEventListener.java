@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -31,11 +32,16 @@ public class NotificationEventListener {
     public void handleAchievementUnlocked(AchievementUnlockedEvent event) {
         log.info("Notification: achievement {} for user {}", event.getAchievementCode(), event.getUserId());
         try {
+            Map<String, Object> metadata = Map.of(
+                    "achievementCode", event.getAchievementCode(),
+                    "pointsAwarded",   event.getPointsAwarded()
+            );
             notificationService.createNotification(
                     event.getUserId(),
                     NotificationType.ACHIEVEMENT_UNLOCKED,
-                    "Новая ачивка: " + event.getAchievementTitle(),
-                    "Вы получили +" + event.getPointsAwarded() + " очков!"
+                    "ACHIEVEMENT_UNLOCKED",
+                    "ACHIEVEMENT_UNLOCKED_MESSAGE",
+                    metadata
             );
         } catch (Exception e) {
             log.error("Failed to create achievement notification", e);
@@ -51,9 +57,10 @@ public class NotificationEventListener {
             notificationService.createNotification(
                     event.getUserId(),
                     NotificationType.NOISE_ALERT,
-                    "Высокий уровень шума!",
-                    String.format("Зафиксировано %.1f дБА. Тип шума: %s. Рекомендуется защита слуха.",
-                            event.getNoiseLevelDba(), event.getNoiseClass())
+                    "NOISE_ALERT",
+                    "NOISE_ALERT_MESSAGE",
+                    Map.of("noiseLevelDba", event.getNoiseLevelDba(),
+                            "noiseClass",    event.getNoiseClass() != null ? event.getNoiseClass() : "")
             );
         } catch (Exception e) {
             log.error("Failed to create noise alert notification", e);
@@ -68,8 +75,9 @@ public class NotificationEventListener {
             notificationService.createNotification(
                     event.getUserId(),
                     NotificationType.RECORDING_FLAGGED,
-                    "Запись отправлена на проверку",
-                    "Ваша запись проходит проверку качества. Причина: " + event.getReason()
+                    "RECORDING_FLAGGED",
+                    "RECORDING_FLAGGED_MESSAGE",
+                    Map.of("reason", event.getReason() != null ? event.getReason() : "")
             );
         } catch (Exception e) {
             log.error("Failed to notify user {} about flagged recording", event.getUserId(), e);
@@ -86,16 +94,16 @@ public class NotificationEventListener {
                 notificationService.createNotification(
                         moderatorId,
                         NotificationType.MODERATION_ALERT,
-                        "Новая запись в очереди модерации",
-                        String.format("Запись %s помечена как подозрительная. Причина: %s",
-                                event.getRecordingId(), event.getReason())
+                        "MODERATION_ALERT",
+                        "MODERATION_ALERT_MESSAGE",
+                        Map.of("recordingId", event.getRecordingId(),
+                                "reason",      event.getReason() != null ? event.getReason() : "")
                 );
             } catch (Exception e) {
                 log.error("Failed to notify moderator {} about flagged recording", moderatorId, e);
             }
         }
     }
-
 
     private List<UUID> parseModerators() {
         if (moderatorIdsRaw == null || moderatorIdsRaw.isBlank()) {

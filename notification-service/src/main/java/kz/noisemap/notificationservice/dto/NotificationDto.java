@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.Map;
 
 public class NotificationDto {
 
@@ -20,6 +21,7 @@ public class NotificationDto {
         private String message;
         private Boolean read;
         private Instant createdAt;
+        private Map<String, Object> metadata;
     }
 
     @Data

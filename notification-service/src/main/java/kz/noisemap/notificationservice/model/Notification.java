@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.Map;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -25,6 +26,7 @@ public class Notification {
     private UUID userId;
 
     private NotificationType type;
+    private Map<String, Object> metadata;
 
     private String title;
     private String message;

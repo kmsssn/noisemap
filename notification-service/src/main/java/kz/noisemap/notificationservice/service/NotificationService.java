@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -25,7 +26,7 @@ public class NotificationService {
     /**
      * Создать уведомление в MongoDB и отправить по WebSocket в реальном времени.
      */
-    public void createNotification(UUID userId, NotificationType type, String title, String message) {
+    public void createNotification(UUID userId, NotificationType type, String title, String message,  Map<String, Object> metadata) {
         // 1. Сохранить в MongoDB
         Notification notification = Notification.builder()
                 .userId(userId)
@@ -34,6 +35,7 @@ public class NotificationService {
                 .message(message)
                 .read(false)
                 .createdAt(Instant.now())
+                .metadata(metadata)
                 .build();
 
         notification = notificationRepository.save(notification);
@@ -78,6 +80,7 @@ public class NotificationService {
                 .message(notification.getMessage())
                 .read(notification.getRead())
                 .createdAt(notification.getCreatedAt())
+                .metadata(notification.getMetadata())
                 .build();
     }
 }
