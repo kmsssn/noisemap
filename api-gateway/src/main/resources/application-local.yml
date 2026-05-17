@@ -85,6 +85,10 @@ spring:
             - Path=/services/comment/**
           filters:
             - StripPrefix=2
+        - id: user-service-admin
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/admin/**
   data:
     redis:
       host: localhost
