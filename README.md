@@ -5,6 +5,7 @@
 Пользователи записывают звуки окружающей среды через мобильное приложение. Система принимает аудиозаписи, прогоняет через ML модель для классификации типа и уровня шума, и на основе этих данных строит тепловую карту города. Для мотивации пользователей реализована геймификация — очки и ачивки за вклад в мониторинг.
 
 ## Архитектура
+
 Бэкенд состоит из 8 микросервисов на Spring Boot 3.3. Каждый сервис работает в своём Docker-контейнере со своей базой данных.
 
 Сервисы взаимодействуют асинхронно через RabbitMQ. Когда пользователь загружает запись, recording-service публикует событие `recording.created`. Его параллельно получают gamification-service (начислить очки), moderation-service (проверить на спам) и ML-сервис (классифицировать звук). После классификации событие `classification.completed` обновляет карту, статистику и проверяет ачивки.
@@ -23,20 +24,21 @@
 
 ## Сервисы
 
-| # | Сервис | Порт | Хранилище | Назначение |
-|---|--------|------|-----------|-----------|
-| 1 | api-gateway | 8080 | Redis | Единый вход, JWT валидация, маршрутизация, WebSocket upgrade |
-| 2 | user-service | 8081 | PostgreSQL | Регистрация, JWT, профили, справочник калибровок устройств, email reset |
-| 3 | recording-service | 8082 | MongoDB | Приём аудио, метаданные, ML bridge, публикация в RabbitMQ |
-| 4 | statistics-service | 8084 | MongoDB + Redis | Городская и персональная статистика |
-| 5 | gamification-service | 8085 | PostgreSQL + Caffeine | Очки, ачивки, лидерборд |
-| 6 | notification-service | 8086 | MongoDB | In-app уведомления + **WebSocket real-time push** |
-| 7 | moderation-service | 8087 | MongoDB | Контроль качества данных |
-| 8 | comment-service | 8088 | MongoDB | Комментарии к точкам на карте |
+| #   | Сервис               | Порт | Хранилище             | Назначение                                                              |
+| --- | -------------------- | ---- | --------------------- | ----------------------------------------------------------------------- |
+| 1   | api-gateway          | 8080 | Redis                 | Единый вход, JWT валидация, маршрутизация, WebSocket upgrade            |
+| 2   | user-service         | 8081 | PostgreSQL            | Регистрация, JWT, профили, справочник калибровок устройств, email reset |
+| 3   | recording-service    | 8082 | MongoDB               | Приём аудио, метаданные, ML bridge, публикация в RabbitMQ               |
+| 4   | statistics-service   | 8084 | MongoDB + Redis       | Городская и персональная статистика                                     |
+| 5   | gamification-service | 8085 | PostgreSQL + Caffeine | Очки, ачивки, лидерборд                                                 |
+| 6   | notification-service | 8086 | MongoDB               | In-app уведомления + **WebSocket real-time push**                       |
+| 7   | moderation-service   | 8087 | MongoDB               | Контроль качества данных                                                |
+| 8   | comment-service      | 8088 | MongoDB               | Комментарии к точкам на карте                                           |
 
 ## Push-уведомления
 
 **WebSocket (STOMP)** — real-time доставка в открытое приложение.
+
 - Endpoint: `wss://noisemap.duckdns.org/ws`
 - Авторизация: JWT в заголовке `Authorization: Bearer ...` при CONNECT
 - Подписка: `/user/queue/notifications`
@@ -52,16 +54,17 @@
 
 Topic exchange `noisemap.events`:
 
-| Routing Key | Producer | Consumers |
-|------------|----------|-----------|
-| `recording.created` | recording-service | ml-bridge (внутри recording-service), moderation, gamification |
-| `classification.completed` | recording-service (через ML bridge) | statistics, gamification, notification |
-| `achievement.unlocked` | gamification-service | notification |
-| `recording.flagged` | moderation-service | notification |
+| Routing Key                | Producer                            | Consumers                                                      |
+| -------------------------- | ----------------------------------- | -------------------------------------------------------------- |
+| `recording.created`        | recording-service                   | ml-bridge (внутри recording-service), moderation, gamification |
+| `classification.completed` | recording-service (через ML bridge) | statistics, gamification, notification                         |
+| `achievement.unlocked`     | gamification-service                | notification                                                   |
+| `recording.flagged`        | moderation-service                  | notification                                                   |
 
 ## Классы шума
 
 Используются классы от ML-сервиса без преобразований:
+
 - `transport` — машины, мотоциклы, общественный транспорт
 - `human` — голоса, разговоры
 - `alert` — сирены, тревоги
@@ -76,7 +79,6 @@ Topic exchange `noisemap.events`:
 - **MODERATOR** — доступ к очереди модерации
 - **ADMIN** — полный доступ
 
-
 ## Стек
 
 - Java 17, Spring Boot 3.3, Maven multi-module
@@ -89,4 +91,3 @@ Topic exchange `noisemap.events`:
 ## Документация сервисов
 
 Swagger UI: `https://noisemap.duckdns.org/swagger-ui.html` (агрегированный)
-
