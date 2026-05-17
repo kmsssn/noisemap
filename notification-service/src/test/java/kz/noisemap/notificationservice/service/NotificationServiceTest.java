@@ -48,7 +48,8 @@ class NotificationServiceTest {
                 userId,
                 NotificationType.ACHIEVEMENT_UNLOCKED,
                 "Новая ачивка!",
-                "Вы получили +10 очков!"
+                "Вы получили +10 очков!",
+                null
         );
 
         // Сохранение в БД
@@ -90,7 +91,8 @@ class NotificationServiceTest {
                         userId,
                         NotificationType.NOISE_ALERT,
                         "Шум!",
-                        "87 дБА"
+                        "87 дБА",
+                        null
                 )
         ).isInstanceOf(RuntimeException.class); // ожидаемо, т.к. mock бросает напрямую
     }
