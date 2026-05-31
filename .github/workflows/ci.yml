@@ -122,9 +122,13 @@ jobs:
             set -e
             echo "=== Starting deployment ==="
             cd /home/amina/noisemap
+            echo "=== Login to ghcr (для приватных ML-образов) ==="
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
             echo "=== Pulling latest code ==="
             git pull origin main
-            echo "=== Building Docker images ==="
+            echo "=== Pulling ML images from ghcr ==="
+            docker compose -f docker-compose.prod.yml pull ml-classification ml-prediction
+            echo "=== Building app images ==="
             docker compose -f docker-compose.prod.yml build
             echo "=== Restarting services ==="
             docker compose -f docker-compose.prod.yml up -d

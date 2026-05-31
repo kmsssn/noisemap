@@ -278,9 +278,8 @@ services:
       - noisemap-net
 
   ml-classification:
-    build:
-      context: ./ml-classification
-      dockerfile: Dockerfile
+    image: ghcr.io/${ML_OWNER_CLASSIFICATION:-nodirbekumarov04}/noise-classification:latest
+    pull_policy: always
     restart: unless-stopped
     expose:
       - "8000"
@@ -303,9 +302,8 @@ services:
 
   # Прогноз шума (Михаил). Синхронный REST GET /predict. RabbitMQ и аудио не нужны.
   ml-prediction:
-    build:
-      context: ./ml-prediction
-      dockerfile: Dockerfile
+    image: ghcr.io/${ML_OWNER_PREDICTION:-mikhailkapitov}/noise-prediction:latest
+    pull_policy: always
     restart: unless-stopped
     expose:
       - "5000"
