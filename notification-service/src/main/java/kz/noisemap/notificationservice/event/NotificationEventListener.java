@@ -39,8 +39,8 @@ public class NotificationEventListener {
             notificationService.createNotification(
                     event.getUserId(),
                     NotificationType.ACHIEVEMENT_UNLOCKED,
-                    "ACHIEVEMENT_UNLOCKED",
-                    "ACHIEVEMENT_UNLOCKED_MESSAGE",
+                    "Новая ачивка: " + event.getAchievementTitle(),
+                    "Вы получили +" + event.getPointsAwarded() + " очков!",
                     metadata
             );
         } catch (Exception e) {
