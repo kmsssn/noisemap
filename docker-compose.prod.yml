@@ -165,7 +165,6 @@ services:
     environment:
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASS: ${RABBIT_PASS}
-      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://host.docker.internal:8000}
     volumes:
       - audio_data:/data/audio
     depends_on:
@@ -188,6 +187,7 @@ services:
     environment:
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASS: ${RABBIT_PASS}
+      PREDICTION_SERVICE_URL: http://ml-prediction:5000
     depends_on:
       mongodb:
         condition: service_healthy
@@ -274,6 +274,41 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    networks:
+      - noisemap-net
+
+  ml-classification:
+    build:
+      context: ./ml-classification
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      RABBITMQ_ENABLED: "true"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBIT_USER}
+      RABBITMQ_PASS: ${RABBIT_PASS}
+      RABBITMQ_EXCHANGE: noisemap.events
+      AUDIO_STORAGE_MOUNT: /data/audio
+      DEFAULT_CALIBRATION_OFFSET: "96.0"
+    volumes:
+      - audio_data:/data/audio:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - noisemap-net
+
+  # Прогноз шума (Михаил). Синхронный REST GET /predict. RabbitMQ и аудио не нужны.
+  ml-prediction:
+    build:
+      context: ./ml-prediction
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "5000"
     networks:
       - noisemap-net
 

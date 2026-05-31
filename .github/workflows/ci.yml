@@ -107,8 +107,6 @@ jobs:
     name: deploy
     needs: build
     runs-on: ubuntu-latest
-    # Убрали условие if: github.event_name == 'workflow_dispatch'
-    # Теперь деплой запускается автоматически после каждого успешного build
     environment: production
 
     steps:

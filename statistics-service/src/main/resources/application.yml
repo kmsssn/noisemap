@@ -17,6 +17,11 @@ spring:
     username: ${RABBIT_USER}
     password: ${RABBIT_PASS}
 
+services:
+  prediction:
+    url: ${PREDICTION_SERVICE_URL:http://ml-prediction:5000}
+    timeout-seconds: 10
+
 springdoc:
   api-docs:
     path: /v3/api-docs
