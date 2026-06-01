@@ -11,17 +11,13 @@ public class PredictionService {
 
     private final PredictionClient predictionClient;
 
+    /** Точка -> типизированный ответ. */
     public PredictionDto.PredictionResponse getPrediction(double lat, double lon, String time) {
         PredictionDto.PointPrediction raw = predictionClient.predictPoint(lat, lon, time);
-
         if (raw == null) {
-            // prediction недоступен -> отдаём пустой ответ, фронт покажет "нет прогноза"
             return PredictionDto.PredictionResponse.builder()
-                    .latitude(lat)
-                    .longitude(lon)
-                    .build();
+                    .latitude(lat).longitude(lon).build();
         }
-
         return PredictionDto.PredictionResponse.builder()
                 .latitude(raw.getLatitude() != null ? raw.getLatitude() : lat)
                 .longitude(raw.getLongitude() != null ? raw.getLongitude() : lon)
@@ -30,5 +26,10 @@ public class PredictionService {
                 .time(raw.getTime())
                 .dayOfWeek(raw.getDayOfWeek())
                 .build();
+    }
+
+    /** Область -> сырой GeoJSON (или null, если prediction недоступен). */
+    public String getBboxPrediction(String bbox, String time) {
+        return predictionClient.predictBbox(bbox, time);
     }
 }

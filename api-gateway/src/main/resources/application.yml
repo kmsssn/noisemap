@@ -86,6 +86,10 @@ spring:
             - Path=/services/statistics/**
           filters:
             - StripPrefix=2
+        - id: prediction-heatmap
+          uri: http://statistics-service:8084
+          predicates:
+            - Path=/api/v1/stats/prediction/**
         - id: gamification-service-docs
           uri: http://gamification-service:8085
           predicates:
