@@ -165,6 +165,7 @@ services:
     environment:
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASS: ${RABBIT_PASS}
+      ML_SERVICE_URL: http://ml-classification:8000
     volumes:
       - audio_data:/data/audio
     depends_on:
