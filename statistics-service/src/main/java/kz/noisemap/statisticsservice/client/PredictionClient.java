@@ -9,11 +9,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Optional;
 
-/**
- * Поддерживает два режима:
- *   - точка: ?lat&lon&time        -> плоский JSON (типизируем в PointPrediction)
- *   - область: ?bbox&time         -> GeoJSON FeatureCollection (проксируем как есть)
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -43,7 +38,6 @@ public class PredictionClient {
      * Область (bbox). prediction отдаёт GeoJSON FeatureCollection — проксируем
      * как сырую JSON-строку, не разбирая (структура сетки нужна фронту как есть).
      * @param bbox строка "min_lon,min_lat,max_lon,max_lat"
-     * @return сырой JSON или null при ошибке
      */
     public String predictBbox(String bbox, String time) {
         try {
