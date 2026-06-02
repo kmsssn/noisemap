@@ -60,7 +60,23 @@ public class AuthService {
         }
 
         if (!user.getActive()) {
-            throw new SecurityException("Account is deactivated");
+            if (user.getBlockedUntil() != null && user.getBlockedUntil().isBefore(java.time.Instant.now())) {
+                user.setActive(true);
+                user.setBlockReason(null);
+                user.setBlockedAt(null);
+                user.setBlockedUntil(null);
+                userRepository.save(user);
+                log.info("User auto-unbanned (ban expired) on login: {}", user.getEmail());
+            } else {
+                String msg = "Account is deactivated";
+                if (user.getBlockReason() != null && !user.getBlockReason().isBlank()) {
+                    msg += ": " + user.getBlockReason();
+                }
+                if (user.getBlockedUntil() != null) {
+                    msg += " (until " + user.getBlockedUntil() + ")";
+                }
+                throw new SecurityException(msg);
+            }
         }
 
         return generateTokens(user);

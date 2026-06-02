@@ -21,6 +21,9 @@ public class AdminDto {
         private String role;
         private String language;
         private Boolean active;
+        private String blockReason;
+        private Instant blockedAt;
+        private Instant blockedUntil;
         private Instant createdAt;
     }
 
@@ -36,5 +39,7 @@ public class AdminDto {
     @AllArgsConstructor
     public static class SetActiveRequest {
         private Boolean active;
+        private String reason;
+        private Integer durationHours;
     }
 }

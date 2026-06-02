@@ -36,10 +36,17 @@ public class User {
 
     @Column(nullable = false)
     @Builder.Default
-    private String language = "ru"; // kz, ru, en
+    private String language = "ru";
 
     @Builder.Default
     private Boolean active = true;
+
+    @Column(length = 500)
+    private String blockReason;
+
+    private Instant blockedAt;
+
+    private Instant blockedUntil;
 
     @CreationTimestamp
     private Instant createdAt;
