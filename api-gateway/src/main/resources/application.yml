@@ -8,14 +8,14 @@ spring:
   cloud:
     gateway:
       globalcors:
-          cors-configurations:
-            '[/**]':
-              allowedOriginPatterns:
-                - "*"
-              allowedMethods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
-              allowedHeaders: "*"
-              allowCredentials: true
-              maxAge: 3600
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
       routes:
         # === User Service ===
         - id: user-service-auth
