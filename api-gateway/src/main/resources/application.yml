@@ -7,6 +7,16 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+          cors-configurations:
+            '[/**]':
+              allowedOriginPatterns:
+                - "http://localhost:5173"
+                - "https://noisemap.duckdns.org"
+              allowedMethods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
+              allowedHeaders: "*"
+              allowCredentials: true
+              maxAge: 3600
       routes:
         # === User Service ===
         - id: user-service-auth
