@@ -28,8 +28,8 @@ public class CommentController {
 
     @PostMapping
     @Operation(summary = "Оставить комментарий на карте",
-               description = "Пользователь оставляет комментарий с координатами. "
-                       + "Опционально можно указать тип шума и уровень дБА.")
+            description = "Пользователь оставляет комментарий с координатами. "
+                    + "Опционально можно указать тип шума и уровень дБА.")
     @ApiResponse(responseCode = "201", description = "Комментарий создан")
     public ResponseEntity<CommentDto.Response> create(
             @Parameter(description = "UUID пользователя") @RequestHeader("X-User-Id") UUID userId,
@@ -40,15 +40,25 @@ public class CommentController {
     }
 
     @GetMapping
-    @Operation(summary = "Все комментарии", description = "Публичный список всех комментариев с пагинацией")
+    @Operation(summary = "Все комментарии", description = "Список видимых комментариев с пагинацией (без удалённых и скрытых)")
     public ResponseEntity<Page<CommentDto.Response>> getAll(
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(commentService.getAll(pageable));
     }
 
+    @GetMapping("/moderation")
+    @Operation(summary = "Список для модерации (Moderator/Admin)",
+            description = "Все не удалённые комментарии, включая скрытые. "
+                    + "Поле hidden показывает, скрыт ли комментарий. Требует роль MODERATOR или ADMIN.")
+    public ResponseEntity<Page<CommentDto.Response>> getForModeration(
+            @Parameter(description = "Роль пользователя") @RequestHeader("X-User-Role") String userRole,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(commentService.getForModeration(userRole, pageable));
+    }
+
     @GetMapping("/area")
     @Operation(summary = "Комментарии в области карты",
-               description = "Получить комментарии в заданном bounding box — для отображения на карте")
+            description = "Получить комментарии в заданном bounding box — для отображения на карте")
     public ResponseEntity<List<CommentDto.Response>> getInArea(
             @RequestParam Double minLat,
             @RequestParam Double minLng,
@@ -76,12 +86,30 @@ public class CommentController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Удалить комментарий",
-               description = "Пользователь может удалить только свой. Модератор и Admin — любой.")
+            description = "Пользователь может удалить только свой. Модератор и Admin — любой. Необратимо (soft delete).")
     public ResponseEntity<Void> delete(
             @Parameter(description = "UUID пользователя") @RequestHeader("X-User-Id") UUID userId,
             @Parameter(description = "Роль пользователя") @RequestHeader("X-User-Role") String userRole,
             @PathVariable String id) {
         commentService.delete(id, userId, userRole);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/hide")
+    @Operation(summary = "Скрыть комментарий (Moderator/Admin)",
+            description = "Скрывает комментарий с карты и из публичных списков. Обратимо — можно показать снова.")
+    public ResponseEntity<CommentDto.Response> hide(
+            @Parameter(description = "Роль пользователя") @RequestHeader("X-User-Role") String userRole,
+            @PathVariable String id) {
+        return ResponseEntity.ok(commentService.hide(id, userRole));
+    }
+
+    @PutMapping("/{id}/unhide")
+    @Operation(summary = "Снова показать комментарий (Moderator/Admin)",
+            description = "Возвращает ранее скрытый комментарий на карту и в публичные списки.")
+    public ResponseEntity<CommentDto.Response> unhide(
+            @Parameter(description = "Роль пользователя") @RequestHeader("X-User-Role") String userRole,
+            @PathVariable String id) {
+        return ResponseEntity.ok(commentService.unhide(id, userRole));
     }
 }

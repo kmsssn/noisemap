@@ -27,19 +27,22 @@ public class Comment {
     @Indexed
     private UUID userId;
 
-    private String displayName;    // имя пользователя на момент комментария
+    private String displayName;
 
     @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
-    private double[] location;     // [longitude, latitude]
+    private double[] location;
 
-    private String text;           // текст комментария (до 500 символов)
+    private String text;
 
-    private String noiseClass;     // опциональный тег: traffic, construction и т.д.
+    private String noiseClass;
 
-    private Double noiseLevelDba;  // опциональный уровень шума
+    private Double noiseLevelDba;
 
     @Builder.Default
-    private Boolean deleted = false; // мягкое удаление
+    private Boolean deleted = false;
+
+    @Builder.Default
+    private Boolean hidden = false;
 
     @CreatedDate
     private Instant createdAt;

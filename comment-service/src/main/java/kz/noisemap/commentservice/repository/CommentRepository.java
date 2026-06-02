@@ -13,19 +13,22 @@ import java.util.UUID;
 @Repository
 public interface CommentRepository extends MongoRepository<Comment, String> {
 
-    Page<Comment> findByDeletedFalseOrderByCreatedAtDesc(Pageable pageable);
+    @Query("{ 'deleted': false, 'hidden': { $ne: true } }")
+    Page<Comment> findVisible(Pageable pageable);
 
-    Page<Comment> findByUserIdAndDeletedFalseOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
-    /**
-     * Комментарии в bounding box на карте.
-     */
-    @Query("{ 'location': { $geoWithin: { $box: [ [?0, ?1], [?2, ?3] ] } }, 'deleted': false }")
+    @Query("{ 'userId': ?0, 'deleted': false, 'hidden': { $ne: true } }")
+    Page<Comment> findVisibleByUser(UUID userId, Pageable pageable);
+
+
+    @Query("{ 'deleted': false }")
+    Page<Comment> findForModeration(Pageable pageable);
+
+
+    @Query("{ 'location': { $geoWithin: { $box: [ [?0, ?1], [?2, ?3] ] } }, 'deleted': false, 'hidden': { $ne: true } }")
     List<Comment> findInBoundingBox(double minLng, double minLat, double maxLng, double maxLat);
 
-    /**
-     * Комментарии рядом с точкой.
-     */
-    @Query("{ 'location': { $nearSphere: { $geometry: { type: 'Point', coordinates: [?0, ?1] }, $maxDistance: ?2 } }, 'deleted': false }")
+
+    @Query("{ 'location': { $nearSphere: { $geometry: { type: 'Point', coordinates: [?0, ?1] }, $maxDistance: ?2 } }, 'deleted': false, 'hidden': { $ne: true } }")
     List<Comment> findNearPoint(double longitude, double latitude, double maxDistanceMeters);
 }

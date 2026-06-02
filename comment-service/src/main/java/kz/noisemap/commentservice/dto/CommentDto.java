@@ -32,8 +32,8 @@ public class CommentDto {
         @Size(min = 3, max = 500, message = "Comment must be between 3 and 500 characters")
         private String text;
 
-        private String noiseClass;   // опционально
-        private Double noiseLevelDba; // опционально
+        private String noiseClass;
+        private Double noiseLevelDba;
     }
 
     @Data
@@ -49,6 +49,7 @@ public class CommentDto {
         private String text;
         private String noiseClass;
         private Double noiseLevelDba;
+        private Boolean hidden;
         private Instant createdAt;
     }
 }

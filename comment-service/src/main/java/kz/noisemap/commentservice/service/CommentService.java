@@ -20,9 +20,6 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
 
-    /**
-     * Создать комментарий на карте.
-     */
     public CommentDto.Response create(UUID userId, String displayName, CommentDto.CreateRequest request) {
         Comment comment = Comment.builder()
                 .userId(userId)
@@ -32,6 +29,7 @@ public class CommentService {
                 .noiseClass(request.getNoiseClass())
                 .noiseLevelDba(request.getNoiseLevelDba())
                 .deleted(false)
+                .hidden(false)
                 .build();
 
         comment = commentRepository.save(comment);
@@ -40,42 +38,37 @@ public class CommentService {
         return toResponse(comment);
     }
 
-    /**
-     * Все комментарии (пагинация) — для модераторов/публичный.
-     */
+
     public Page<CommentDto.Response> getAll(Pageable pageable) {
-        return commentRepository.findByDeletedFalseOrderByCreatedAtDesc(pageable)
+        return commentRepository.findVisible(pageable)
                 .map(this::toResponse);
     }
 
-    /**
-     * Комментарии в области карты (bounding box).
-     */
+    public Page<CommentDto.Response> getForModeration(String userRole, Pageable pageable) {
+        requireModerator(userRole);
+        return commentRepository.findForModeration(pageable)
+                .map(this::toResponse);
+    }
+
+
     public List<CommentDto.Response> getInArea(Double minLat, Double minLng, Double maxLat, Double maxLng) {
         return commentRepository.findInBoundingBox(minLng, minLat, maxLng, maxLat)
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    /**
-     * Комментарии рядом с точкой.
-     */
+
     public List<CommentDto.Response> getNearby(Double lat, Double lng, Double radius) {
         return commentRepository.findNearPoint(lng, lat, radius)
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    /**
-     * Мои комментарии.
-     */
+
     public Page<CommentDto.Response> getMyComments(UUID userId, Pageable pageable) {
-        return commentRepository.findByUserIdAndDeletedFalseOrderByCreatedAtDesc(userId, pageable)
+        return commentRepository.findVisibleByUser(userId, pageable)
                 .map(this::toResponse);
     }
 
-    /**
-     * Удалить комментарий — мягкое удаление.
-     * Пользователь может удалить только свой. Модератор/Admin — любой.
-     */
+
     public void delete(String commentId, UUID userId, String userRole) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
@@ -92,6 +85,33 @@ public class CommentService {
         log.info("Comment deleted: id={}, by userId={}", commentId, userId);
     }
 
+
+    public CommentDto.Response hide(String commentId, String userRole) {
+        requireModerator(userRole);
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
+        comment.setHidden(true);
+        comment = commentRepository.save(comment);
+        log.info("Comment hidden: id={}", commentId);
+        return toResponse(comment);
+    }
+
+    public CommentDto.Response unhide(String commentId, String userRole) {
+        requireModerator(userRole);
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
+        comment.setHidden(false);
+        comment = commentRepository.save(comment);
+        log.info("Comment unhidden: id={}", commentId);
+        return toResponse(comment);
+    }
+
+    private void requireModerator(String userRole) {
+        if (!"MODERATOR".equals(userRole) && !"ADMIN".equals(userRole)) {
+            throw new SecurityException("Moderator or admin role required");
+        }
+    }
+
     private CommentDto.Response toResponse(Comment c) {
         return CommentDto.Response.builder()
                 .id(c.getId())
@@ -102,6 +122,7 @@ public class CommentService {
                 .text(c.getText())
                 .noiseClass(c.getNoiseClass())
                 .noiseLevelDba(c.getNoiseLevelDba())
+                .hidden(Boolean.TRUE.equals(c.getHidden()))
                 .createdAt(c.getCreatedAt())
                 .build();
     }
