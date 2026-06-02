@@ -11,8 +11,7 @@ spring:
           cors-configurations:
             '[/**]':
               allowedOriginPatterns:
-                - "http://localhost:5173"
-                - "https://noisemap.duckdns.org"
+                - "*"
               allowedMethods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
               allowedHeaders: "*"
               allowCredentials: true
