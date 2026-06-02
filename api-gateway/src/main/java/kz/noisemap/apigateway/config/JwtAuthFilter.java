@@ -16,11 +16,11 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.util.List;
 
 /**
  * Глобальный фильтр: проверяет JWT на всех запросах, кроме публичных.
- * При валидном токене прокидывает X-User-Id и X-User-Role в headers downstream.
  */
 @Component
 public class JwtAuthFilter implements GlobalFilter, Ordered {
@@ -85,11 +85,16 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
             String userId = claims.getSubject();
             String role = claims.get("role", String.class);
+            String displayName = claims.get("displayName", String.class);
 
-            // Прокидываем user info в заголовках к downstream сервисам
+            String displayNameHeader = displayName != null
+                    ? URLEncoder.encode(displayName, StandardCharsets.UTF_8)
+                    : "User";
+
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                     .header("X-User-Id", userId)
                     .header("X-User-Role", role != null ? role : "USER")
+                    .header("X-Display-Name", displayNameHeader)
                     .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());

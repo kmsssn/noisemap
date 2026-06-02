@@ -33,8 +33,17 @@ public class CommentController {
     @ApiResponse(responseCode = "201", description = "Комментарий создан")
     public ResponseEntity<CommentDto.Response> create(
             @Parameter(description = "UUID пользователя") @RequestHeader("X-User-Id") UUID userId,
-            @Parameter(description = "Имя пользователя") @RequestHeader("X-Display-Name") String displayName,
+            @Parameter(description = "Имя пользователя (URL-encoded)")
+            @RequestHeader(value = "X-Display-Name", required = false) String displayNameRaw,
             @Valid @RequestBody CommentDto.CreateRequest request) {
+        String displayName;
+        try {
+            displayName = displayNameRaw != null
+                    ? java.net.URLDecoder.decode(displayNameRaw, java.nio.charset.StandardCharsets.UTF_8)
+                    : "User";
+        } catch (Exception e) {
+            displayName = displayNameRaw != null ? displayNameRaw : "User";
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(commentService.create(userId, displayName, request));
     }
