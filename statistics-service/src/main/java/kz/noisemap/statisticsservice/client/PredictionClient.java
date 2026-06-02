@@ -10,7 +10,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.Optional;
 
 /**
- * Клиент к prediction-сервису (Михаил, Flask GET /predict).
  * Поддерживает два режима:
  *   - точка: ?lat&lon&time        -> плоский JSON (типизируем в PointPrediction)
  *   - область: ?bbox&time         -> GeoJSON FeatureCollection (проксируем как есть)
