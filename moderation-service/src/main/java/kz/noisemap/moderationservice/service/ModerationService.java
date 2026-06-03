@@ -34,7 +34,6 @@ public class ModerationService {
     private static final int SPAM_FLAG_THRESHOLD = 5;
     private static final int SPAM_WINDOW_HOURS = 1;
 
-
     public void checkRecording(RecordingCreatedEvent event) {
         if (event.getLatitude() < MIN_VALID_LAT || event.getLatitude() > MAX_VALID_LAT
                 || event.getLongitude() < MIN_VALID_LNG || event.getLongitude() > MAX_VALID_LNG) {
@@ -54,7 +53,6 @@ public class ModerationService {
             flagRecording(event.getRecordingId(), event.getUserId(), "spam_pattern", details);
         }
     }
-
 
     public void flagRecording(String recordingId, UUID userId, String reason, String details) {
         ModerationRecord record = ModerationRecord.builder()
@@ -90,9 +88,7 @@ public class ModerationService {
                 .map(this::toQueueItem);
     }
 
-    /**
-     * Очередь/история по статусу. status == null или "ALL" -> все записи (история).
-     */
+    /** Очередь/история по статусу. status == null или "ALL" -> все записи. */
     public Page<ModerationDto.QueueItem> getQueue(String status, Pageable pageable) {
         if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
             return moderationRepository.findAll(pageable).map(this::toQueueItem);
@@ -106,7 +102,7 @@ public class ModerationService {
         return moderationRepository.findByStatus(st, pageable).map(this::toQueueItem);
     }
 
-    public void reviewRecord(String id, UUID reviewerId, ModerationDto.ReviewRequest request) {
+    public void reviewRecord(String id, UUID reviewerId, String reviewerName, ModerationDto.ReviewRequest request) {
         ModerationRecord record = moderationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Moderation record not found: " + id));
 
@@ -118,11 +114,12 @@ public class ModerationService {
                 ? ModerationStatus.APPROVED
                 : ModerationStatus.REJECTED);
         record.setReviewedBy(reviewerId);
+        record.setReviewedByName(reviewerName);
         record.setReviewComment(request.getComment());
         record.setReviewedAt(Instant.now());
 
         moderationRepository.save(record);
-        log.info("Recording {} moderation decision: {} by {}", id, request.getDecision(), reviewerId);
+        log.info("Recording {} moderation decision: {} by {} ({})", id, request.getDecision(), reviewerName, reviewerId);
     }
 
     public ModerationDto.QueueStats getQueueStats() {
@@ -143,6 +140,7 @@ public class ModerationService {
                 .status(record.getStatus().name())
                 .flaggedAt(record.getFlaggedAt())
                 .reviewedBy(record.getReviewedBy())
+                .reviewedByName(record.getReviewedByName())
                 .reviewComment(record.getReviewComment())
                 .reviewedAt(record.getReviewedAt())
                 .build();

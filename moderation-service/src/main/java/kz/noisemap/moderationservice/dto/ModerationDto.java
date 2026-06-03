@@ -23,6 +23,7 @@ public class ModerationDto {
         private String status;
         private Instant flaggedAt;
         private UUID reviewedBy;
+        private String reviewedByName;
         private String reviewComment;
         private Instant reviewedAt;
     }

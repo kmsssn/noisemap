@@ -14,34 +14,30 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.net.URLDecoder;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/moderation")
 @RequiredArgsConstructor
-@Tag(name = "Модерация", description = "Управление качеством данных. "
-        + "Автоматическое обнаружение аномалий + ручная модерация. "
-        + "Доступ: только MODERATOR и ADMIN.")
+@Tag(name = "Модерация", description = "Управление качеством данных. Доступ: только MODERATOR и ADMIN.")
 public class ModerationController {
 
     private final ModerationService moderationService;
 
     @GetMapping("/queue")
     @Operation(summary = "Очередь / история модерации",
-            description = "Без параметра status — записи в ожидании (PENDING). "
-                    + "С параметром status=APPROVED|REJECTED|ALL — соответствующая выборка (история). "
-                    + "Причины флага: out_of_bounds, spam_pattern.")
+            description = "Без status — PENDING. С status=APPROVED|REJECTED|ALL — соответствующая выборка.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Список записей"),
-            @ApiResponse(responseCode = "403", description = "Недостаточно прав (нужен MODERATOR/ADMIN)")
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав")
     })
     public ResponseEntity<Page<ModerationDto.QueueItem>> getQueue(
             @RequestHeader("X-User-Role") String role,
-            @Parameter(description = "Статус: PENDING, APPROVED, REJECTED, ALL. По умолчанию PENDING.")
-            @RequestParam(required = false) String status,
+            @Parameter(description = "PENDING, APPROVED, REJECTED, ALL") @RequestParam(required = false) String status,
             @PageableDefault(size = 20) Pageable pageable) {
         validateModeratorAccess(role);
-        // Обратная совместимость: без параметра — старое поведение (только PENDING)
         if (status == null || status.isBlank()) {
             return ResponseEntity.ok(moderationService.getPendingQueue(pageable));
         }
@@ -49,27 +45,33 @@ public class ModerationController {
     }
 
     @PutMapping("/queue/{id}/review")
-    @Operation(summary = "Принять решение по записи",
-            description = "Модератор одобряет (approve) или отклоняет (reject) запись. "
-                    + "Можно добавить комментарий с обоснованием.")
+    @Operation(summary = "Принять решение по записи")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Решение принято"),
-            @ApiResponse(responseCode = "400", description = "Невалидное решение (допустимо: approve, reject)"),
+            @ApiResponse(responseCode = "400", description = "Невалидное решение"),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав")
     })
     public ResponseEntity<Void> reviewRecord(
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String role,
-            @Parameter(description = "ID записи в очереди модерации") @PathVariable String id,
+            @RequestHeader(value = "X-Display-Name", required = false) String displayNameRaw,
+            @Parameter(description = "ID записи") @PathVariable String id,
             @RequestBody ModerationDto.ReviewRequest request) {
         validateModeratorAccess(role);
-        moderationService.reviewRecord(id, userId, request);
+        String reviewerName;
+        try {
+            reviewerName = displayNameRaw != null
+                    ? URLDecoder.decode(displayNameRaw, StandardCharsets.UTF_8)
+                    : "Moderator";
+        } catch (Exception e) {
+            reviewerName = displayNameRaw != null ? displayNameRaw : "Moderator";
+        }
+        moderationService.reviewRecord(id, userId, reviewerName, request);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/stats")
-    @Operation(summary = "Статистика очереди модерации",
-            description = "Количество записей в ожидании проверки")
+    @Operation(summary = "Статистика очереди модерации")
     public ResponseEntity<ModerationDto.QueueStats> getStats(
             @RequestHeader("X-User-Role") String role) {
         validateModeratorAccess(role);

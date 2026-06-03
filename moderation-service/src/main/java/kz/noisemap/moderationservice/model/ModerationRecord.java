@@ -27,13 +27,14 @@ public class ModerationRecord {
     @Indexed
     private UUID userId;
 
-    private String reason;         // причина флага
-    private String details;        // детали автоматической проверки
+    private String reason;
+    private String details;
 
     @Builder.Default
     private ModerationStatus status = ModerationStatus.PENDING;
 
-    private UUID reviewedBy;       // модератор, который принял решение
+    private UUID reviewedBy;
+    private String reviewedByName;
     private String reviewComment;
 
     private Instant flaggedAt;
