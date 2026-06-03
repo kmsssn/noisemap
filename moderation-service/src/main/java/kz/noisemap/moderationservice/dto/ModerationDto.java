@@ -22,6 +22,9 @@ public class ModerationDto {
         private String details;
         private String status;
         private Instant flaggedAt;
+        private UUID reviewedBy;
+        private String reviewComment;
+        private Instant reviewedAt;
     }
 
     @Data
@@ -29,7 +32,7 @@ public class ModerationDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ReviewRequest {
-        private String decision;      // "approve" или "reject"
+        private String decision;
         private String comment;
     }
 

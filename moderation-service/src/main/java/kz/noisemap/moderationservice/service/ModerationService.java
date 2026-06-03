@@ -44,7 +44,6 @@ public class ModerationService {
             return;
         }
 
-
         Instant windowStart = Instant.now().minus(SPAM_WINDOW_HOURS, ChronoUnit.HOURS);
         long recentFlags = moderationRepository.countByUserIdAndFlaggedAtAfter(
                 event.getUserId(), windowStart);
@@ -91,6 +90,22 @@ public class ModerationService {
                 .map(this::toQueueItem);
     }
 
+    /**
+     * Очередь/история по статусу. status == null или "ALL" -> все записи (история).
+     */
+    public Page<ModerationDto.QueueItem> getQueue(String status, Pageable pageable) {
+        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
+            return moderationRepository.findAll(pageable).map(this::toQueueItem);
+        }
+        ModerationStatus st;
+        try {
+            st = ModerationStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status. Allowed: PENDING, APPROVED, REJECTED, ALL");
+        }
+        return moderationRepository.findByStatus(st, pageable).map(this::toQueueItem);
+    }
+
     public void reviewRecord(String id, UUID reviewerId, ModerationDto.ReviewRequest request) {
         ModerationRecord record = moderationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Moderation record not found: " + id));
@@ -127,6 +142,9 @@ public class ModerationService {
                 .details(record.getDetails())
                 .status(record.getStatus().name())
                 .flaggedAt(record.getFlaggedAt())
+                .reviewedBy(record.getReviewedBy())
+                .reviewComment(record.getReviewComment())
+                .reviewedAt(record.getReviewedAt())
                 .build();
     }
 }
