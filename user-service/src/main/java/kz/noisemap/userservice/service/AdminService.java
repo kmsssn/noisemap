@@ -23,7 +23,12 @@ public class AdminService {
     private final UserRepository userRepository;
 
     public Page<AdminDto.UserResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(this::toAdminResponse);
+        org.springframework.data.domain.Pageable sorted =
+                org.springframework.data.domain.PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        org.springframework.data.domain.Sort.by("createdAt").ascending());
+        return userRepository.findAll(sorted).map(this::toAdminResponse);
     }
 
     public AdminDto.UserResponse getUser(UUID userId) {
