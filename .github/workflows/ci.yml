@@ -21,6 +21,7 @@ jobs:
       gamification-service: ${{ steps.changes.outputs.gamification-service }}
       notification-service: ${{ steps.changes.outputs.notification-service }}
       moderation-service: ${{ steps.changes.outputs.moderation-service }}
+      comment-service: ${{ steps.changes.outputs.comment-service }}
       infra: ${{ steps.changes.outputs.infra }}
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +52,9 @@ jobs:
               - 'common-lib/**'
             moderation-service:
               - 'moderation-service/**'
+              - 'common-lib/**'
+            comment-service:
+              - 'comment-service/**'
               - 'common-lib/**'
             infra:
               - 'docker-compose.yml'
@@ -100,6 +104,10 @@ jobs:
         if: needs.detect-changes.outputs.api-gateway == 'true' || needs.detect-changes.outputs.common-lib == 'true'
         run: mvn clean package -pl api-gateway -am -DskipTests
 
+      - name: Build comment-service
+        if: needs.detect-changes.outputs.comment-service == 'true' || needs.detect-changes.outputs.common-lib == 'true'
+        run: mvn clean package -pl comment-service -am -DskipTests
+
       - name: Run tests
         run: mvn test
 
@@ -122,8 +130,6 @@ jobs:
             set -e
             echo "=== Starting deployment ==="
             cd /home/amina/noisemap
-            echo "=== Login to ghcr (для приватных ML-образов) ==="
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
             echo "=== Pulling latest code ==="
             git pull origin main
             echo "=== Pulling ML images from ghcr ==="
