@@ -19,13 +19,10 @@ public class DeviceCalibrationClient {
 
     /**
      * Запрашивает калибровку для модели устройства.
-     *
-     * @param deviceModel модель устройства (например "iPhone 13 Pro")
-     * @return offset в dB (по умолчанию 0.0 если устройство неизвестно или сервис недоступен)
      */
     public Double getCalibrationOffset(String deviceModel) {
         if (deviceModel == null || deviceModel.isBlank()) {
-            return 0.0;
+            return null;
         }
 
         try {
@@ -40,8 +37,8 @@ public class DeviceCalibrationClient {
                     .block();
 
             if (result == null || result.getCalibrationOffsetDb() == null) {
-                log.warn("Empty calibration response for device: {}", deviceModel);
-                return 0.0;
+                log.warn("Empty calibration response for device: {} -> null (ML applies default)", deviceModel);
+                return null;
             }
 
             log.debug("Calibration for {}: offset={} dB, verified={}",
@@ -50,10 +47,9 @@ public class DeviceCalibrationClient {
             return result.getCalibrationOffsetDb();
 
         } catch (Exception e) {
-            // Не бросаем дальше — лучше offset=0.0 чем падение всей загрузки
-            log.error("Failed to get calibration for device '{}': {}. Falling back to 0.0",
+            log.error("Failed to get calibration for device '{}': {}. Returning null (ML applies default)",
                     deviceModel, e.getMessage());
-            return 0.0;
+            return null;
         }
     }
 }
