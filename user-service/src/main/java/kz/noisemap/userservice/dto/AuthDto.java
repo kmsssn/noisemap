@@ -94,4 +94,10 @@ public class AuthDto {
         @Pattern(regexp = PASSWORD_PATTERN, message = PASSWORD_MESSAGE)
         private String newPassword;
     }
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class RefreshTokenRequest {
+        @NotBlank
+        private String refreshToken;
+    }
 }

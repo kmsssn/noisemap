@@ -166,6 +166,30 @@ public class AuthService {
         return generateTokens(user);
     }
 
+    public AuthDto.TokenResponse refresh(String refreshToken) {
+        try {
+            var claims = jwtService.parseToken(refreshToken);
+
+            if (!"refresh".equals(claims.get("type"))) {
+                throw new UnauthorizedException("Invalid token type");
+            }
+
+            UUID userId = UUID.fromString(claims.getSubject());
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+            if (!user.getActive()) {
+                throw new UnauthorizedException("Account is deactivated");
+            }
+
+            return generateTokens(user);
+        } catch (UnauthorizedException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new UnauthorizedException("Invalid or expired refresh token");
+        }
+    }
+
     private AuthDto.TokenResponse generateTokens(User user) {
         return AuthDto.TokenResponse.builder()
                 .accessToken(jwtService.generateAccessToken(user))

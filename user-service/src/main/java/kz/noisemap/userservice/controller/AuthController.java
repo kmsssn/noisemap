@@ -107,4 +107,16 @@ public class AuthController {
             @Valid @RequestBody AuthDto.ChangeEmailRequest request) {
         return ResponseEntity.ok(authService.changeEmail(userId, request));
     }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "Обновить токены",
+            description = "Принимает refresh token, возвращает новую пару access + refresh токенов.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Токены обновлены"),
+            @ApiResponse(responseCode = "401", description = "Невалидный или истёкший refresh token")
+    })
+    public ResponseEntity<AuthDto.TokenResponse> refresh(
+            @Valid @RequestBody AuthDto.RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
+    }
 }
