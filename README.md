@@ -19,8 +19,7 @@
   Классы: `transport, human, alert, building_noise, animals, others`.
   Интегрируется через `MlBridgeListener` в recording-service (HTTP вызов).
 
-- **Map Tiles Service** — отдельный сервис Миши, frontend обращается напрямую к нему.
-  В нашем gateway маршрут не объявлен.
+- **Map Tiles Service** — https://github.com/MikhailKapitov/thesis-map-viewer, frontend обращается напрямую к нему.
 
 ## Сервисы
 
