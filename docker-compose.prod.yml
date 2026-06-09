@@ -365,11 +365,36 @@ services:
     networks:
       - noisemap-net
 
+  loki:
+    image: grafana/loki:3.0.0
+    restart: unless-stopped
+    expose:
+      - "3100"
+    volumes:
+      - ./infrastructure/loki/loki-config.yml:/etc/loki/local-config.yml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yml
+    networks:
+      - noisemap-net
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - noisemap-net
+
 volumes:
   postgres_data:
   mongo_data:
   audio_data:
   grafana_data:
+  loki_data:
   certs:
   vhost:
   html:
